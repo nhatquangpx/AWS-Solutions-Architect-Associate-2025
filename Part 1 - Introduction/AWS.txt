@@ -1,0 +1,21 @@
+# AWS là gì?
+- AWS - Amazon Web Services là một nhà cung cấp đám mây
+- Nó cung cấp các máy chủ và dịch vụ mà người dùng có thể sử dụng theo yêu cầu và mở rộng quy mô một cách dễ dàng
+
+# AWS Regions:
+- Một region là một cụm trung tâm dữ liệu (cluster of data centers)
+- Khi sử dụng dịch vụ AWS, hầu hết các dịch vụ sẽ được liên kết phạm vi với một khu vực cụ thể
+=> Nếu sử dụng 1 dvụ ở 1 khu vực và thử sử dụng dvụ ở 1 khu vực khác thì sẽ giống như một lần sử dụng dịch vụ mới
+
+# Chọn AWS Region:
+- Tuân thủ chính sách chính phủ
+- Giảm độ trễ 
+- Một số khu vực không có đầy đủ dịch vụ mà ứng dụng của mình sử dụng
+- Giá cả
+
+# Availability Zones:
+- 1 region sẽ có nhiều vùng khả dụng (thường là 3, min=3, max=6)
+- Mỗi vùng khả dùng sẽ là một hoặc nhiều trung tâm dữ liệu riêng biệt có mạng lưới điện và kết nối dự phòng
+- Các vùng khả dụng này tách biệt với nhau => Tránh được thảm họa
+- Các vùng này được kết nối với mạng băng thông cao, độ trễ cực thấp, khi được liên kết sẽ hình thành region
+
