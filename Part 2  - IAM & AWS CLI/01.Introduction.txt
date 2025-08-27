@@ -1,0 +1,76 @@
+    ### Mục tiêu bài học ###
+- Hiểu IAM là gì và vì sao nó là dịch vụ toàn cầu (global).
+- Phân biệt root user, IAM user, group.
+- Nắm cách gán quyền thông qua policy (tài liệu JSON).
+- Vận dụng nguyên tắc đặc quyền tối thiểu (Least Privilege) khi cấp quyền.
+- Thực hành nhanh: tạo user, group, gắn policy đúng cách.
+
+# IAM là gì?
+- IAM = Identity and Access Management, Global service: Dịch vụ quản lý danh tính (người dùng, nhóm) và quyền truy cập đến tài nguyên AWS
+- Đây là dịch vụ toàn cầu -> bạn không chọn region cho IAM như với EC2/S3. Danh tính và policy bạn tạo trong IAM áp dụng cho toàn bộ tài khoản AWS, không gói trong từng region
+
+# Root user - chỉ dùng để thiết lập ban đầu
+- Khi bạn tạo một tài khoản AWS, một tài khoản root được tạo mặc định. Đây là "siêu tài khoàn" có mọi quyền
+- Chỉ nên dùng root user để thiết lập ban đầu (ví dụ: cấu hình thanh toán, bật MFA, tạo IAM admin đầu tiên...). Sau đó:
+    + Không dùng root để làm việc hàng ngày
+    + Không chia sẻ thông tin root
+    + Không tạo access key cho root (nếu đã có thì xóa)
+    + Bật MFA cho root để bảo vệ tài khoản
+
+# IAM User & Group: mô hình tổ chức
+* IAM User:
+- Mỗi user đại diện cho 1 người thật trong tổ chức
+- Có thể có Console access (đăng nhập bằng mật khẩu) và/hoặc Programmatic access (Access key/Secret key dùng cho CLI/SDK)
+- Quyền hạn của user đến từ policy gắn trực tiếp vào user hoặc gián tiếp qua group.
+* IAM Group:
+- Group dùng để gom các user có vai trò giống nhau để quản trị quyền hiệu quả
+- Quan trọng: Group chỉ chứa user, không chứa group khác
+- Một user có thể thuộc nhiều group (để kế thừa nhiều tập quyền khác nhau)
+- User không thuộc group vẫn hợp lệ trong AWS, nhưng không phải best practice (khó quản lý, dễ sai sót)
+* Ví dụ minh họa: Tổ chức có 6 người: Alice, Bob, Charles, David, Edward, Fred
+- Alice, Bob, Charles là developers -> Tạo group Developers cho 3 bạn này vào
+- David, Edward là operations -> tạo group Operations 
+- Fred chưa thuộc group nào -> AWS cho phép, nhưng không phải best practice
+- Charles và David cùng ở nhóm Audit (1 group thứ 3), vì user có thể ở nhiều group
+
+# Cấp quyền bằng Policy (tài liệu JSON)
+- Để cho phép user/group dùng tài nguyên AWS, ta gắn policy
+- Policy là một tài liệu JSON mô tả điều gì được phép (Allow) và bị chặn (Deny)
+- Cấu trúc cơ bản của một Policy:
+    {
+    "Version": "2012-10-17",
+    "Statement": [
+            {
+            "Sid": "OptionalStatementId",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:Describe*",
+                "elasticloadbalancing:Describe*",
+                "cloudwatch:Get*",
+                "cloudwatch:List*"
+            ],
+            "Resource": "*"
+            }
+        ]
+    }
+-> Giải thích:
+- Version: phiên bản ngôn ngữ policy (thường là "2012-10-17")
+- Statement: danh sách các mệnh đề 
+- Sid: tùy chọn, để đặt tên/nhãn cho statement 
+- Effect: "Allow" hoặc "Deny"
+- Action: hành động được phép/không được phép (ví dụ ec2:DescribeInstances hoặc pattern như ec2:Describe* )
+- Resource: tài nguyên áp dụng (thường là "*" nếu chỉ liệt kê/đọc; khi khắt khe hơn, bạn chỉ rõ ARN của tài nguyên)
+- Condition (tùy chọn): ràng buộc điều kiện (theo IP, thời gian, tag,...)
+-> Policy trên cho phép:
+- Dùng EC2 với các hành động Describe* (đọc/tra cứu)
+- Dùng Elastic Load Balancing với Describe*
+- Dùng CloudWatch với Get*, List* (xem/đọc dữ liệu giám sát)
+=> Đây lf ví dụ "read-only" - rất phù hợp khi bạn muốn ai đó chỉ xem thông tin hệ thống, không tạo/sửa/xóa tài nguyên
+
+# Cách AWS đánh giá quyền và nguyên tắc "Least Privilege"
+- Mặc định là "Implicit Deny": nếu không có Allow thì coi như không được phép
+- Allow có hiệu lực khi policy cho phép hành động đó và không có deny nào chặn
+- Explicit Deny thắng mọi Allow: nếu có policy "Deny", hành động sẽ bị chặn dù nới khác có Allow
+- Quyền cuối cùng của user = hợp các quyền từ mọi policy gắn vào user và mọi group mà user thuộc về
+- Least Privilege (Đặc quyền tối thiểu): Chỉ cấp đúng và đủ quyền để hoàn thành công việc
+-> Tránh cấp quyền quá rộng (ví dụ *:*), tránh dễ dãi dẫn đến rủi ro bảo mật hoặc chi phí (ai đó lỡ tạo nhiều tài nguyên tốn tiền)
