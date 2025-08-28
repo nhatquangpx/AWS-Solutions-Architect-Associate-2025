@@ -67,6 +67,7 @@ d. User thuộc nhiều group
     + Effect: "Allow" hoặc "Deny"
         . Nếu không có Allow -> Mặc định là Implicit Deny
         . Nếu có Deny rõ ràng -> Explicit Deny luôn thắng
+        . Nguyên tắc: Explicit Deny > Allow > Implicit Deny.
     + Principal: Ai bị ảnh hưởng bởi policy
         . Thường thấy trong Resource-based policy (VD: bucket policy)
         . Với Identity-based-policy (gắn cho user/role/group) thì không có trường này 
