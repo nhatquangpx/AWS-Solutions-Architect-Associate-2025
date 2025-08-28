@@ -1,0 +1,118 @@
+    ### Mục tiêu bài học ###
+- Cách policy “lan truyền” khi gắn ở group hoặc user.
+- Các loại policy: Managed Policy và Inline Policy.
+- Cấu trúc của một policy JSON: các trường Version, Id, Statement, Effect, Principal, Action, Resource, Condition.
+- Cách suy luận quyền của một user khi tham gia nhiều group.
+
+# Policy áp dụng như thế nào?
+- Hãy tưởng tượng tổ chức có nhiều nhóm:
+a. Policy ở cấp Group 
+- Nếu bạn gắn policy vào group Developers (gồm Alice, Bob, Charles) thì mọi thành viên trong group đều kế thừa policy này 
+- Nghĩa là Alice, Bob, Charles đều có cùng tập quyền mà group Developers được cấp 
+b. Policy ở group khác
+- Tạo group Operations (gồm David, Edward), gắn một policy khác -> David và Edward có quyền khác so với Developers
+c. User "độc lập" (Không thuộc group nào)
+- Ví dụ Fred: không thuộc group nào, nhưng AWS vẫn cho phép bạn gắn một policy trực tiếp vào Fred 
+- Đây gọi là "inline policy" - chính sách gắn riêng cho User
+-> Inline policy không tái sử dụng được, chỉ "dính" vào user đó thôi
+d. User thuộc nhiều group
+- Giả sử Charles và David cùng vào nhóm Audit
+- Nếu Audit có policy riêng, thì cả Charles và David cũng kế thừa quyền từ Audit
+- Lúc này:
+    + Charles có policy từ Developers + policy từ Audit.
+    + David có policy từ Operations + policy từ Audit.
+=> Quyền cuối cùng của một user = hợp tất cả policy từ mọi group và inline policy của user đó
+
+# Các loại Policy trong AWS IAM
+- Có 2 loại chính:
+    + Managed Policy:
+        . Là các policy có thể tái sử dụng, gắn cho nhiều user/group/role
+        . Gồm: 
+            - AWS Managed Policies: do AWS tạo sẵn (ví dụ AmazonS3ReadOnlyAccess) 
+            - Customer Managed Policies: do bạn tự tạo
+        . Thường dùng để quản lý quy mô lớn
+    + Inline Policy:
+        . Là policy gắn trực tiếp vào một user, group hoặc role
+        . Không tái sử dụng được
+        . Dùng khi bạn muốn "cài riêng" cho một user đặc biệt
+
+# Cấu trúc của IAM Policy (JSON)
+- Một policy là tài liệu JSON. Sau đây là chi tiết từng thành phần:
+{
+  "Version": "2012-10-17",
+  "Id": "ExamplePolicyID", 
+  "Statement": [
+    {
+      "Sid": "1",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::123456789012:root"
+      },
+      "Action": "s3:*",
+      "Resource": "arn:aws:s3:::my-bucket/*"
+    }
+  ]
+}
+-> Các trường chính:
+1. Version
+- Phiên bản ngôn ngữ policy
+- Thường thấy nhất: "2012-10-17" (nên nhớ con số này cho exam).
+2. Id (tùy chọn)
+- Định danh của policy (để phân biệt khi có nhiều policy)
+3. Statement
+- Có thể chứa một hoặc nhiều mệnh đề
+- Mỗi mệnh đề mô tả một "quy tắc phân quyền"
+- Trong Statement: 
+    + Sid (Statement ID): ID cho mệnh đề (tùy chọn)
+    + Effect: "Allow" hoặc "Deny"
+        . Nếu không có Allow -> Mặc định là Implicit Deny
+        . Nếu có Deny rõ ràng -> Explicit Deny luôn thắng
+        . Nguyên tắc: Explicit Deny > Allow > Implicit Deny.
+    + Principal: Ai bị ảnh hưởng bởi policy
+        . Thường thấy trong Resource-based policy (VD: bucket policy)
+        . Với Identity-based-policy (gắn cho user/role/group) thì không có trường này 
+    + Action: Danh sách API được phép hoặc bị cấm (VD: s3:GetObject, ec2:DescribeInstances)
+    + Resource: ARN của tài nguyên bị ảnh hưởng (VD: arn:aws:s3:::my-bucket/*)
+        . Có thể "*" nếu muốn áp dụng trên tất cả tài nguyên 
+    + Condition (tùy chọn): Ràng buộc khi nào rule áp dụng (VD: chỉ cho phép từ một IP nhất định, trong một khoảng thời gian, hoặc nếu tài nguyên có tag nào đó)
+
+# Ví dụ minh họa thực tế:
+- Ví dụ 1: Allow tất cả thao tác trên một S3 bucket cụ thể 
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::my-bucket",
+        "arn:aws:s3:::my-bucket/*"
+      ]
+    }
+  ]
+}
+- Ví dụ 2: Deny tải file lên S3 nếu file có tag "Confidential"
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Deny",
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::my-bucket/*",
+      "Condition": {
+        "StringEquals": {
+          "s3:RequestObjectTag/Classification": "Confidential"
+        }
+      }
+    }
+  ]
+}
+=> Condition cho phép tinh chỉnh rất mạnh, nên trong exam hay thực tế đều cực kỳ quan trọng.
+
+# LƯU Ý THI CHỨNG CHỈ AWS
+Khi ôn thi (vd: AWS Solutions Architect Associate), bạn cần thuộc lòng 4 thành phần quan trọng nhất trong Statement:
+- Effect
+- Principal
+- Action
+- Resource
+Câu hỏi thường yêu cầu bạn xác định: “User này có được phép làm gì không?” → bạn phải phân tích theo 4 yếu tố này.
