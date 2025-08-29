@@ -1,0 +1,44 @@
+    ## Các cách truy cập AWS & Access Keys ##
+- Trong khóa học từ trước đến giờ, chúng ta đã sử dụng AWS Management Console - tức là giao diện web để làm việc với AWS. Tuy nhiên, trên thực tế, có 3 cách khác nhau để truy cập AWS:
+
+# Management Console:
+- Đây là giao diện web chúng ta đã làm quen
+- Được bảo mật bằng username, password và có thể có thêm MFA
+- Dùng rất trực quan, phù hợp cho người mới
+
+# CLI (Command Line Interface)
+- Đây là công cụ mà chúng ta sẽ cài đặt trên máy tính cá nhân
+- CLI được bảo mật bằng Access Keys 
+- Access Keys này sẽ cho phép chúng ta truy cập AWS trực tiếp từ terminal/command-line 
+1. CLI là gì?
+- Là một công cụ giup tương tác với các dịch vụ AWS thông qua các lệnh gõ trong terminal
+- Ví dụ: Khi gõ lệnh
+    aws s3 cp ...
+thì đây chính là CLI đang làm việc
+- Chú ý: Mọi lệnh CLI đều bắt đầu bằng từ khóa aws
+2. Ưu điểm CLI
+- Cho phép truy cập trực tiếp với Public APIs của AWS 
+- Rất hữu ích trong khóa học này, bởi sẽ thao tác nhanh và chính xác
+- Có thể viết script tự động hóa để quản lý tài nguyên, tiết kiệm thời gian 
+- CLI là open-source, toàn bộ source code có trên Github
+- Nhiều người dùng chỉ dùng CLI mà không động đến Management Console 
+
+# SDK (Software Development Kit)
+- SDK là bộ thư viện để lập trình viên gọi AWS APIs từ bên trong code ứng dụng
+- Giống như CLI, SDK cũng được bảo vệ bằng Access Keys
+- SDK không chạy trong terminal, mà được nhúng vào ứng dụng bạn lập trình 
+- SDK hỗ trợ nhiều ngôn ngữ lập trình: JavaScript, Python, PHP, .Net, Ruby, Go, Nodejs, C++, Java
+- Ngoài ra có cả Mobile SDK (Cho Android/iOS)
+- Có IoT SDK cho các thiết bị IoT (cảm biến nhiệt, logs, thiết bị kết nối ...)
+- Ví dụ: Công cụ AWS CLI mà chúng ta vừa học thực ra được xây dựng trên AWS SDK for Python, tên gọi là Boto
+
+# Về Access Key:
+- Được tạo ra thông qua Management Console
+- Người dùng phải tự chịu trách nhiệm với access keys của mình
+- Access Keys tuyệt đối không được chia sẻ cho đồng nghiệp, vì ai cũng có thể tự tạo keys của họ
+- Nguyên tắc bảo mật:
+    + Access Key ID = username 
+    + Secret Access Key = password 
+    + Khi tạo keys trong console, bạn sẽ có nút download ngay lập tức
+    + Sau đó bạn tải về và dùng để cấu hình CLI 
+- Ví dụ: Một cặp (fake) access key ID và (fake) secret access key nếu được load vào CLI sẽ cho phép bạn truy cập AWS API 

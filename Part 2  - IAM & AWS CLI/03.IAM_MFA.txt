@@ -1,0 +1,49 @@
+    ### Mục tiêu bài học ###
+- Hiểu Password Policy trong AWS IAM: tại sao cần và có thể cấu hình những gì
+- Nắm vững MFA (Multi-Factor Authentication): khái niệm, lợi ích, cách hoạt động
+- Biết rõ các loại thiết bị MFA mà AWS hỗ trợ
+- Áp dụng best practice bảo mật: bảo vệ root account và IAM users
+
+Chúng ta đã tạo users trong groups rồi. Bây giờ nhiệm vụ tiếp theo là bảo vệ những người dùng trong groups này không bị xâm nhập
+AWS cung cấp 2 cơ chế phòng thủ quan trọng:
+
+# Password Policy 
+1. Vì sao cần password policy?
+- Mật khẩu càng mạnh thì tài khoản càng an toàn
+- Nếu không có pp, người dùng có thể đặt mật khẩu yếu -> dễ dàng bị tấn công brute force
+2. Các tùy chọn khi thiết lập password policy trong AWS
+- Độ dài tối thiểu của mật khẩu 
+- Yêu cầu ký tự nhất định, ví dụ:
+    + Chữ cái in hoa (uppercase)
+    + Chữ cái thường (lowercase)
+    + Số (number)
+    + Ký tự đặc biệt (non-alphanumeric), ví dụ: ?, !, % …
+- Cho phép hoặc không cho phép IAM users thay đổi mật khẩu của họ
+- Bắt buộc người dùng phải đổi mật khẩu định kỳ -> ví dụ: mỗi 90 ngày thì mật khẩu hết hạn và phải thay mới
+- Ngăn chặn việc tái sử dụng mật khẩu cũ -> người dùng không thể đặt lại mật khẩu giống trước đó
+=> Password Policy giúp bảo vệ tài khoản khỏi các cuộc tấn công brute force 
+
+# Multi-Factor Authentication (MFA)
+1. Khái niệm
+- MFA = Password (cái bạn biết) + Security device (cái bạn sở hữu)
+- Kết hợp hai yếu tố này sẽ an toàn hơn nhiều so với chỉ dùng password
+2. Tại sao cần MFA trên AWS?
+- Người dùng (đặc biệt là administrator) có quyền thay đổi cấu hình, xóa tài nguyên,..
+- Do đó, phải bảo vệ ít nhất root account và tốt hơn là toàn bộ IAM users 
+- Ví dụ:
+    + Alice có password và có một MFA token.
+    + Khi login, cô ấy nhập password + mã từ MFA → đăng nhập thành công.
+    + Nếu password bị hack nhưng hacker không có thiết bị MFA của Alice (ví dụ điện thoại của cô ấy) → tài khoản không bị xâm nhập.
+3. Các loại MFA device trong AWS (CẦN NHỚ CHO EXAM)
+- Virtual MFA device (sử dụng phần mềm):
+    + Ví dụ: Google Authenticator (chỉ hỗ trợ một token trên một điện thoại)
+    + Ví dụ: Authy (hỗ trợ nhiều token trên cùng một thiết bị)
+    + Dễ dùng, có thể cài cho root account, IAM users, nhiều tài khoản khác nhau trên cùng một thiết bị 
+- Universal 2nd Factor (U2F) Security Key:
+    + Thiết bị vật lý, ví dụ: YubiKey của Yubico (bên thứ ba cung cấp, không phải AWS)
+    + Hỗ trợ nhiều root và IAM users trên cùng một key 
+- Hardware key fob MFA device:
+    + Ví dụ: thiết bị của Gemalto (bên thứ 3)
+- GovCloud key fob MFA device (chỉ cho AWS GovCloud ở Mỹ):
+    + Ví dụ: thiết bị từ SurePassID (bên thứ 3)
+    
