@@ -1,0 +1,18 @@
+        ## Mục tiêu bài học ##
+- Hiểu về những công cụ bảo mật mà IAM cung cấp
+
+# IAM Credentials Report
+- Đây là một công cụ hoạt động ở cấp độ tài khoản (account-level)
+- Khi tạo IAM Credentials Report, báo cáo này sẽ chứa thông tin về tất cả người dùng (users) trong tài khoản của chúng ta
+- Nội dung báo cáo sẽ cho biết trạng thái của các loại thông tin xác thực (credentials) mà mỗi user đang có 
+
+# IAM Access Advisor
+- Đây là công cụ cấp độ user (user-level)
+- IAM Access Advisor cho phép chúng ta xem: 
+    + Các quyền truy cập dịch vụ nào đã được gán cho một user 
+    + Thời điểm cuối cùng mà những dịch vụ đó được user truy cập 
+-> Cực kỳ hữu ích vì chúng ta đã học về nguyên tắc tối thiểu quyền hạn (Principle of Least Privilege)
+- Với Access Advisor, ta có thể xác định:
+    + Quyền nào của user không được sử dụng
+    + Từ đó, giảm bớt quyền của user, chỉ để lại đúng những gì cần thiết theo least privilege 
+

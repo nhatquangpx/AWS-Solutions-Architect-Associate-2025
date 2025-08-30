@@ -1,0 +1,30 @@
+1. IAM Users
+- IAM Users nên được ánh xạ (map) với một physical user thực tế trong công ty.
+- Mỗi user sẽ có password để đăng nhập AWS Management Console.
+
+2. IAM Groups
+- Các user có thể được gom lại thành nhóm (groups).
+- Việc phân quyền sẽ thực hiện cho nhóm thay vì từng user.
+
+3. IAM Policies
+- Policies là các tài liệu JSON mô tả quyền truy cập.
+- Policies có thể được gán cho user hoặc group.
+
+4. IAM Roles
+- Roles cũng là một loại identity, nhưng thường dành cho AWS services như:
+    + EC2 instances.
+    + Hoặc các dịch vụ AWS khác.
+
+5. Security
+- Có thể bật Multi-Factor Authentication (MFA) để tăng cường bảo mật.
+- Cần thiết lập Password Policy cho user.
+
+6. CLI & SDK
+- CLI (Command Line Interface): quản lý AWS qua command line.
+- SDK (Software Development Kit): quản lý AWS bằng ngôn ngữ lập trình.
+- Để dùng CLI hoặc SDK, cần tạo Access Keys.
+
+7. Auditing Tools
+- Có thể kiểm tra và giám sát (audit) việc sử dụng IAM bằng cách:
+    + Tạo IAM Credentials Report.
+    + Sử dụng IAM Access Advisor.
