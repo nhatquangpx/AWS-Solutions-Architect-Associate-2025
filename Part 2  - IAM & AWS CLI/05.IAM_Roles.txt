@@ -1,0 +1,26 @@
+        ## Mục tiêu bài học ##
+- Trong phần này, chúng ta sẽ nói đến thành phần cuối cùng của IAM, đó là IAM Roles
+
+# Vì sao cần IAM Roles?
+- Một số dịch vụ AWS mà chúng ta sẽ khởi tạo trong khóa này cần thực hiện hành động thay mặt tất cả chúng ta, tức là thay mặt cho tài khoản AWS của chúng ta
+- Để làm được điều này, cũng giống như người dùng (user), các dịch vụ này cần có một loại quyền (permissions)
+- Và để gán quyền cho các dịch vụ AWS, chúng ta tạo một thứ gọi là IAM Role 
+
+# IAM Roles là gì?
+- IAM Role cũng giống như một user, nhưng không phải dành cho con người sử dụng trực tiếp 
+- Thay vào đó, IAM Roles được thiết kế để dùng cho các dịch vụ AWS 
+
+# Ví dụ: EC2 Instance cần quyền
+- Trong khóa học, chúng ta sẽ tạo một EC2 Instance (tức là một máy chủ ảo trên AWS, giống như một server thật)
+- Khi EC2 Instance này muốn thực hiện một số hành động trên AWS (ví dụ như đọc dữ liệu từ S3), nó cần có quyền
+- Để cấp quyền cho EC2 Instance, ta sẽ tạo một IAM Role và gán nó cho Instance này 
+-> Khi đó, EC2 Instance + IAM Role sẽ gắn kết với nhau để tạo thành một thực thế (entity)
+    + Khi EC2 Instance gửi yêu cầu đến AWS (ví dụ gọi API), nó sẽ sử dụng IAM Role đi kèm
+    + Nếu IAM Role có quyền phù hợp thì AWS sẽ cho phép yêu cầu đó được thực thi 
+
+# Một số loại IAM Role phổ biến
+- Ngoài EC2 Instance Role, còn có các loại role khác thường gặp:
+    + Lambda Function Roles -> Cho phép Lambda Function thực hiện hành động trên AWS 
+    + CloudFormation Roles -> Cho phép CloudFormation quản lý tài nguyên AWS thay cho chúng ta 
+
+    
