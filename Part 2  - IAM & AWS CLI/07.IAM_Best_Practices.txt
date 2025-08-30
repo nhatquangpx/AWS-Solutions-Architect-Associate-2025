@@ -1,0 +1,34 @@
+        ## Mục tiêu bài học ##
+- Trước khi kết thúc, chúng ta cùng tìm hiểu một số hướng dẫn chung về IAM và Best Practices để khi sử dụng tránh mắc những sai lầm cơ bản
+
+# Root Account 
+- Không được sử dụng root account, ngoại trừ thiết lập tài khoản AWS ban đầu
+- Sau khi thiết lập xong sẽ có 2 loại account:
+    + Root account
+    + Tài khoản cá nhân (IAM User)
+
+# User Management
+- Một AWS user = một physical user 
+- Nếu bạn bè muốn sử dụng AWS, không được phép chia sẻ credentials của bản thân mà phải tạo user mới cho họ 
+
+# Groups & permissions
+- Nên gán user vào group và phân quyền ở cấp độ group -> giúp quản lý bảo mật dễ dàng hơn 
+- Đồng thời, cần tạo strong password policy - chính sách mật khẩu mạnh 
+
+# Multi-Factor Authentication (MFA) 
+- Nên sử dụng và bắt buộc MFA để đảm bảo tài khoản an toàn hơn trước hacker 
+
+# Roles 
+- Khi cấp quyền cho AWS services (bao gồm cả EC2 instances - tức các máy chủ ảo), hãy sử dụng IAM Roles thay vì user trực tiếp 
+
+# Programmatic Access (CLI & SDK)
+- Nếu dùng AWS thông qua CLI hoặc SDK, cần tạo Access Key
+- Access Keys giống như mật khẩu -> cần giữ bí mật và dùng cho chính mình 
+
+# Security Tools 
+- Để chỉnh sửa quyền, có thể dùng:
+    + IAM Credentials Report 
+    + IAM Access Advisor
+
+# Tuyệt đối KHÔNG ĐƯỢC LÀM:
+- Chia sẻ IAM users hoặc Access Keys của mình cho bất kỳ ai 
