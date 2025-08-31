@@ -1,0 +1,45 @@
+        ## Mục tiêu bài học ##
+- Chúng ta sẽ bắt đầu với EC2, nơi mà chúng ta sẽ tạo website đầu tiên trên AWS 
+
+# EC2 là gì?
+- EC2 là một trong những dịch vụ phổ biến nhất của AWS 
+- Tên đầy đủ là Elastic Compute Cloud
+- EC2 là cách AWS cung cấp Infrastructure as a Service (IaaS), tức là thuê hạ tầng máy chủ theo nhu cầu 
+- Hiểu đơn giản: EC2 cho phép thuê máy tính ảo (virtual machines) bất cứ khi nào bạn cần, trả tiền theo mức sử dụng 
+
+# Thành phần cơ bản của EC2
+- EC2 không chỉ là một dịch vụ đơn lẻ, mà bao gồm nhiều thành phần:
+    + EC2 Instances: thuê máy ảo (virtual machines)
+    + EBS Volumes: lưu trữ dữ liệu trên ổ đĩa ảo
+    + Elastic Load Balancer: phân phối tải giữa các máy
+    + Auto Scaling Group (ASG): tự động tăng/giảm số lượng instance theo nhu cầu
+
+# Lựa chọn cấu hình EC2:
+- Khi tạo EC2 instance, có thể lựa chọn:
+1. Hệ điều hành (OS):
+- Linux -> phổ biến nhất
+- Windows
+- Mac OS
+2. CPU: số lõi và sức mạnh tính toán
+3. RAM: bộ nhớ ngẫu nhiên (Random Access Memory)
+4. Storage:
+- Lưu trữ qua mạng (EBS hoặc EFS)
+- Lưu trữ trực tiếp gắn trên máy (EC2 Instance Store)
+5. Network:
+- Loại card mạng, tốc độ 
+- Loại Public IP 
+6. Firewall rules:
+- Quản lí thông qua Security Group và NACL 
+7. Bootstrap Script (EC2 User Data):
+- Cấu hình instance khi khởi chạy lần đầu 
+
+# EC2 User Data & Bootstrapping
+- Bootstrapping: chạy lệnh instance khởi động lần đầu
+- User Data script: chỉ chạy một lần khi instance khởi tạo 
+- Mục đích: tự động hóa các công việc khi boot (boot tasks)
+- Ví dụ các công việc thường dùng: 
+    + Cài đặt cập nhật (updates)
+    + Cài phần mềm
+    + Tải file từ internet
+    + Hoặc bất cứ thao tác nào bạn muốn 
+- LƯU Ý: EC2 User Data script chạy với quyền root (sudo rights), nên mọi lệnh đều có quyền quản trị 

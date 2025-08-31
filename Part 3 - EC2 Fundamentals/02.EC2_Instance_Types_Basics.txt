@@ -1,0 +1,53 @@
+        ## Mục tiêu bài học ##
+- Hiểu được các loại EC2 instance và đặc điểm của từng loại giúp chọn instance phù hợp với workload và chi phí
+- Các instance sẽ được áp dụng trong các bài thực hành và dự án thực tế trong khóa học
+
+# Khái niệm chung:
+- EC2 instances có nhiều loại khác nhau để phù hợp với từng use case và optimization
+- Trên website AWS có 7 loại instance chính hiện nay:
+    + General Purpose
+    + Compute Optimized
+    + Memory Optimized
+    + Storage Optimized
+    +...
+- Tham khảo website chính thức của AWS để xem chi tiết các instance type, chi phí, thông số kỹ thuật
+
+# Cách AWS đặt tên instance:
+- Ví dụ: m5.2xlarge
+    + m -> Instance class, ví dụ General Purpose
+    + 5 -> Generation của instance, thể hiện cải tiến phần cứng
+    + 2xlarge -> Kích thước instance, càng lớn thì CPU và RAM càng nhiều
+        Kích thước từ small -> large -> 2xlarge -> 4xlarge...
+
+# Các loại instance phổ biến:
+- General Purpose:
+    + Phù hợp cho đa dạng workloads: web server, code repository,...
+    + Cân bằng giữa CPU, RAM và networking
+    + Trong khóa học này, sẽ sử dụng t2.micro (free tier)
+- Compute Optimized:
+    + Tối ưu cho compute intensive tasks, cần CPU mạnh
+    + Ví dụ: batch processing, media transcoding, HPC, machine learning, dedicated gaming server 
+    + Naming convention: C series -> C5. C6...
+- Memory Optimized:
+    + Tối ưu cho workloads cần RAM lớn, xử lí dữ liệu lớn trong bộ nhớ
+    + Ví dụ: relational/non-relational in-memory database, ElastiCache, BI applications, realtime processing of big unstructed data 
+    + Naming convention: R series (R=RAM), còn có X1, High Memory, Z1
+- Storage Optimized:
+    + Tối ưu khi truy cập nhiều dữ liệu trên local storage 
+    + Use case: OLTP systems, relational & NoSQL databases, in-memory cache (Redis), data warehousing, distributed file systems
+    + Naming convention: I, D, H1 series 
+
+# So sánh một số instance:
+| Instance     | vCPU | RAM (GB) | Đặc điểm nổi bật             |
+| ------------ | ---- | -------- | ---------------------------- |
+| t2.micro     | 1    | 1        | General Purpose, free tier   |
+| r5.16xlarge  | 16   | 512      | Memory Optimized, nhiều RAM  |
+| c5.d.4xlarge | 16   | 32       | Compute Optimized, nhiều CPU |
+-> Nhìn vào bảng so sánh, có thể thấy tỉ lệ CPU/RAM khác nhau tùy loại instance, kèm hiệu năng mạng và băng thông EBS khác nhau 
+
+# Công cụ tham khảo: 
+- Website hữu ích để so sánh tất cả instance: ec2instances.info
+- Thông tin cung cấp: 
+    + Memory, vCPU 
+    + Linux On-Demand cost, Reserved cost
+    + Có thể sắp xếp, tìm kiếm, so sánh các instance 
