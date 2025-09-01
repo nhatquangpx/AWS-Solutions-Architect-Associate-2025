@@ -1,0 +1,82 @@
+        ## Mục tiêu bài học ##
+- Hiểu Security Groups là gì và tại sao nó đóng vai trò như firewall của EC2 Instance.
+- Biết cách kiểm soát inbound traffic (lượt truy cập từ bên ngoài vào) và outbound traffic (từ EC2 ra ngoài).
+- Nắm rõ nguyên tắc: Security Groups chỉ có allow rules, không có deny.
+- Nhận biết sự khác nhau giữa timeout (do bị chặn bởi Security Group) và connection refused (ứng dụng chưa chạy).
+- Biết rằng Security Groups có thể:
+- Gắn cho nhiều EC2 Instance.
+- Một EC2 Instance có thể gắn nhiều Security Group.
+- Tham chiếu lẫn nhau để EC2 trong cùng hệ thống giao tiếp mà không cần quản lý IP.
+- Ghi nhớ các port quan trọng: 22 (SSH), 21 (FTP), 22 (SFTP), 80 (HTTP), 443 (HTTPS), 3389 (RDP).
+=> Biết cách dùng Security Groups để bảo vệ, cho phép, và quản lý kết nối của EC2 Instance một cách an toàn.
+
+# Security Groups là gì?
+- Trong AWS, Security Groups chính là firewall bao quanh EC2 Instance 
+- Chúng quyết định traffic nào được phép đi vào (inbound) và traffic nào được phép đi ra (outbound) từ EC2 Instance 
+- Security Groups chỉ có allow rules (luật cho phép). Không có deny rules
+-> Có thể quy định cho phép traffic dựa trên:
+- IP Address (IPv4 hoặc IPv6)
+- Security Group khác (Security Groups có thể tham chiếu lẫn nhau)
+
+# Cách hoạt động cơ bản:
+Hãy tưởng tượng:
+- Đang sử dụng máy tính cá nhân (Internet công cộng)
+- Muốn kết nối vào EC2 Instance của mình 
+- EC2 Instance được gắn một Security Group - firewall bao quanh nó 
+Security Group có 2 loại rule:
+- Inbound Rule: Kiểm soát traffic từ ngoài Internet vào EC2 
+- Outbound Rule: Kiểm soát traffic từ EC2 ra Internet 
+
+# Chi tiết về Security Group:
+- Security Group = Firewall cho EC2 instance 
+- Kiểm soát truy cập qua:
+        + Port: cổng nào được mở 
+        + Protocol: TCP/UDP
+        + Source IP Range: ai được phép truy cập 
+- Ví dụ:
+        + 0.0.0.0/0 = cho phép mọi địa chỉ IP truy cập 
+        + 203.0.113.25/32 = chỉ cho phép duy nhất 1 IP 
+- Ví dụ sơ đồ:
+        + EC2 Instance có 1 Security Group 
+        + Imbound Rule cho phép máy tính của bạn SSH vào (port 22)
+        + Máy tính khác, không cùng IP, sẽ bị block -> timeout 
+        + Outbound Rule: mặc định cho phép tất cả traffic ra ngoài 
+        Nghĩa là EC2 có thể truy cập Internet, tải về, gọi API...
+
+# Một số đặc điểm quan trọng cần nhớ 
+- Một Security Group có thể gắn cho nhiều EC2 Instance 
+- Một EC2 Instance có thể gắn nhiều Security Group cùng lúc
+- Security Groups gắn liền với Region và VPC
+        + Đổi Region -> phải tạo Security Group mới 
+        + Đổi VPC -> cũng phải tạo lại Security Group
+- Security Group nằm ngoài EC2 Instance:
+        + Nếu traffic bị block thì EC2 không hề thấy request đó 
+- Best Practice: Tạo Security Group riêng chỉ cho SSH (port 22)
+
+# Cách phân biệt lỗi kết nối 
+- Nếu bị timeout khi truy cập ứng dụng -> Do Security Group chặn 
+- Nếu nhận được thông báo Connection Refused
+        + Nghĩa là Security Group đã cho phép
+        + Nhưng ứng dụng trên EC2 chưa chạy hoặc có lỗi 
+
+# Mặc định của Security Group
+- Inbound traffic: Mặc định bị chặn hết
+- Outbound traffic: Mặc định được cho phép hết 
+
+# Tính năng nâng cao - Tham chiếu Security Group 
+- Một tính năng rất mạnh mẽ: Security Groups có thể tham chiếu lẫn nhau 
+- Ví dụ:
+        + Có EC2 Instance A với Security Group số 1
+        + Trong inbound rules của Group 1, cho phép traffic từ Group 1 và Group 2
+        + Khi EC2 Instance B có Security Group số 2, nó có thể truy cập trực tiếp EC2 A
+        + Tương tự EC2 khác với Group 1 cũng có thể kết nối lại A
+        + Nếu một EC2 khác dùng Group 3 (chưa được cho phép) -> Bị chặn 
+-> Tính năng này rất hay khi dùng Load Balancer hoặc hệ thống nhiều tầng, vì không cần quan tâm IP thay đổi, chỉ cần Security Group phù hợp là kết nối được 
+
+# Các port quan trọng cần nhớ cho kì thi AWS 
+- 22 - SSH: Secure Shell, dùng để login vào Linux Instance 
+- 21 - FTP: File Transfer Protocol, upload file 
+- 22 - SFTP: Secure File Transfer Protocol, cũng dùng port 22 nhưng dựa trên SSH 
+- 80 - HTTP: Truy cập website không bảo mật 
+- 443 - HTTPS: Truy cập website bảo mật (chuẩn hiện nay)
+- 2289 - RDP: Remote Desktop Protocol, login vào Windows Instance 
