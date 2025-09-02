@@ -1,0 +1,38 @@
+        ## Mục tiêu bài học ## 
+- Hiểu được và biết cách lựa chọn công cụ để kết nối an toàn vào EC2 Instance bằng SSH hoặc EC2 Instance Connect, phù hợp với hệ điều hành của mình 
+
+# Cách kết nối vào server Linux
+- Đói với các máy chủ chạy Linux, chúng ta thường sửu dụng một công cụ gọi là SSH (Secure Shell)
+    + SSH cho phép bạn mở một phiên làm việc an toàn đến server từ máy tính cá nhân 
+    + Khi đã kết nối qua SSH, bạn có thể gõ lệnh, cài đặt phần mềm, hoặc thực hiện các thao tác quản trị hệ thống 
+
+# Cách kết nối phụ thuộc vào hệ điều hành Windows
+- Windows trước 10: 
+    + Không có sẵn công cụ SSH
+    + Giải pháp là dùng phần mềm tên Putty
+    + Putty hoạt động tương tự SSH, cho phép bạn kết nối tới EC2 Instance qua giao thức SSH 
+- Windows từ 10 trở lên:
+    + Trên Windows 10 và các phiên bản mới hơn, SSH đã được tích hợp sẵn 
+    + Có thể dùng trực tiếp trong Command Prompt hoặc PowerShell để SSH vào server 
+
+# Trường hợp Mac và Linux:
+- Đều có sẵn SSH trong terminal -> mở trực tiếp terminal, sử dụng lệnh SSH để kết nối đến EC2 
+
+# EC2 Instance Connect - phương pháp mới
+- Ngoài SSH và Putty, có phương pháp mới gọi là EC2 Instance Connect
+    + Cách kết nối qua web browser, không cần dùng terminal, không cần Putty 
+    + Hỗ trợ cho cả Mac, Linux và Windows - mọi phiên bản
+    + Cách này đơn giản, tiện lợi và không cần cài đặt thêm gì cả 
+-> Tuy nhiên EC2 Instance Connect hiện chỉ hoạt động với Amazon NX2
+
+# Chú ý về SSH:
+- Một số lỗi thường gặp về SSH:
+    + Sai rule trong Security Group (chưa mở cổng 22)
+    + Sai câu lệnh hoặc gõ nhầm
+    + Quên bước nào đó trong quá trình 
+
+# Kinh nghiệm xử lí sự cố
+- Nếu gặp vấn đề với SSH, thử dùng EC2 Instance Connect 
+- Nhiều khi chỉ cần đổi cách kết nối là có thể giải quyết được lỗi 
+
+
