@@ -1,0 +1,118 @@
+        ## Mục tiêu bài học ## 
+- Hiểu được các lựa chọn purchase EC2: On-Demand, Reserved Instances (bao gồm Convertible RI), Savings Plans, Spot Instances, Dedicated Host, Dedicated Instances và Capacity Reservations.
+- Biết ưu - nhược điểm, chi phí và tình huống sử dùng phù hợp của từng lựa chọn để tối ưu chi phí và đáp ứng nhu cầu workload
+- Nắm được cách phân biệt các tùy chọn trong thực tế và trong kỳ thi AWS (biết khi nào dùng On-Demand, khi nào dùng RI, Spot, Dedicated Host...)
+
+# On-Demand Instances:
+- Đặc điểm:
+    + Chạy ngay khi bạn cần -> "on demand"
+    + Thích hợp cho workload ngắn hạn
+    + Dễ dự đoán chi phí (predictable pricing)
+    + Thanh toán theo giây (per second billing, sau phút đầu tiên) cho Linux và Windows 
+    + Với các hệ điều hành khác (RHEL, SLES) -> Tính theo giờ
+- Chi phí: Cao nhất, không có giảm giá, không cần trả trước, không cam kết dài hạn
+- Khi nào dùng:
+    + Công việc ngắn hạn, không gián đoạn
+    + Khi bạn không thể dự đoán workload sẽ chạy như thế nào 
+- Ví dụ thực tế: Ứng dụng thử nghiệm, test môi trường mới, hoặc workload chỉ chạy vài giờ/ngày 
+
+# Reserved Instances (RI)
+- Khái niệm: Cam kết sử dụng trong 1 năm hoặc 3 năm 
+- Ưu đãi:
+    + Giảm giá tới 72% so với On-Demand 
+    + Có thể chọn trả toàn bộ upfront, một phần upfront hoặc không upfront
+- Phạm vi (Scope):
+    + Ở Region -> Linh hoạt hơn
+    + Ở Availability Zone (AZ) -> kèm luôn đặt chỗ (capicity reservation)
+- Thuộc tính cố định khi đặt mua: instance type, region, tenancy, OS
+- Mua bán lại: Có thể bán lại trên Marketplace nếu không còn nhu cầu 
+- "Convertible Reserved Instances":
+    + Cho phép thay đổi: instance type, family, OS, scopt, tenancy
+    + Đổi lại, mức giá thấp hơn (tối đa ~66%)
+    + Phù hợp khi workload có thể thay đổi trong tương lai 
+- Ví dụ: Bạn biết chắc sẽ chạy một MySQL Database ít nhất 3 năm -> mua Reserved Instance để tiết kiệm chi phí
+
+# Saving Plans
+- Khái niệm: Giống RI nhưng hiện đại hơn. Cam kết sử dụng theo chi phí ($) thay vì instance cụ thể
+- Cam kết:
+    + 1 năm hoặc 3 năm
+    + Ví dụ: "Tôi sẽ chi 10$/giờ trong 1 năm tới"
+- Ưu đãi: Giảm giá tương tự RI (~70%)
+- Đặc điểm:
+    + Linh hoạt về instance size (m5.xlarge = m5.2xlarge)
+    + Linh hoạt về OS (Linux, Windows)
+    + Linh hoạt về tenancy (default, dedicated, host)
+    + Nhưng vẫn bị giới hạn bởi instance family + region 
+- Khi nào dùng: Workload dài hạn, muốn tiết kiệm nhưng không muốn khóa cứng vào một instance duy nhất 
+- Ví dụ: Bạn commit chi $300/tháng trong 12 tháng -> AWS sẽ giảm giá cho toàn bộ usage trong phạm vi đó 
+
+# Spot Instances
+- Đặc điểm: 
+    + Giảm giá lớn nhất, lên tới 90% so với On-Demand
+    + Bạn đặt mức giá tối đa muốn trả 
+    + Nếu giá Spot vượt quá mức đó -> instance bị hủy bất cứ lúc nào 
+- Ưu điểm: Cự rẻ, cost-efficient nhất
+- Nhược điểm: Không ổn định, có thể mất instance bất cứ lúc nào 
+- Khi nào dùng: Workload có thể chịu lỗi gián đoạn 
+    + Batch jobs
+    + Data analysis
+    + Image processing
+    + Distributed workloads
+    + Workload có thời gian bắt đầu/kết thúc linh hoạt 
+- Không phù hợp: Công việc quan trọng, database, workload cần chạy liên tục 
+- Ví dụ: Xử lý dữ liệu log, render hình ảnh, job machine learning huấn luyện model (có checkpoint)
+
+# Dedicated Hosts
+- Khái niệm: Thuê trọn một physical server trong AWS 
+- Ưu điểm:
+    + Kiểm soát placement của instance 
+    + Đáp ứng yêu cầu compliance (quy định bảo mật)
+    + Dùng cho BYOL (Bring Your Own License) - phần mềm yêu cầu tính phí theo socket/core/VM
+- Chi phí: 
+    + Rất đắt, đắt nhất 
+    + Có thể trả On-Demand hoặc Reserve (1-3 năm)
+- Khi nào dùng:
+    + Công ty có yêu cầu tuân thủ pháp lý nghiêm ngặt 
+    + Phần mềm có license gắn với phần cứng 
+- Ví dụ: Oracle Database với licensing per-core 
+
+# Dedicated Instances
+- Chạy trên hardware riêng biệt cho bạn (không chung với customer khác)
+- Tuy nhiên:
+    + Có thể chia sẻ phần cứng với các instance khác trong cùng tài khoản 
+    + Bạn không kiểm soát được placement 
+- So sánh với Dedicated Host:
+    + Dedicated Instance = chỉ biết "không chung hardware với khách hàng khác"
+    + Dedicated Host = kiểm soát luôn phần cứng bên dưới
+    
+# Capacity Reservations
+- Khái niệm: Đặt chỗ trước capacity trong một AZ
+- Đặc điểm:
+    + Không có giảm giá 
+    + Trả theo giá On-Demand dù có dùng hay không 
+    + Có thể hủy bất kỳ lúc nào 
+- Khi nào dùng:
+    + Bạn cần chắc chắn có capacity để chạy, đặc biệt ở một AZ 
+    + Workload ngắn hạn, liên tục, nhưng phải chắc chắn có chỗ 
+- Kết hợp: Có thể kết hợp với Reserved Instances hoặc Savings Plan để có discount 
+- Ví dụ: Bạn tổ chức sự kiện online, cần chắc chắn có EC2 để xử lý traffic trong một AZ nhất định 
+
+# So sánh các tùy chọn bằng ví dụ "Resort"
+- On-Demand: Bạn đến resort lúc nào cũng được, trả giá đầy đủ 
+- Reserved Instances: Bạn đặt trước phòng trong 1-3 năm -> được giảm giá 
+- Saving Plans: Bạn cam kết mỗi tháng chi $300 cho resort -> có thể đổi loại phòng (king, suite,...)
+- Spot Instances: Resort giảm giá sốc phòng trống lúc phút chót -> bạn được phòng rẻ, nhưng có thể bị đuổi nếu có khách khác trả cao hơn
+- Dedicated Host: Bạn thuê toàn bộ resort
+- Capacity Reservation: Bạn đặt phòng trước, dù không ở vẫn phải trả tiền, nhưng chắc chắn có chỗ nếu cần 
+
+# So sánh giá (ví dụ m4.large ở us-east-1)
+- On-Demand: 0.10 USD
+- Spot: giảm tới 61%
+- Reserved: giảm ~72% (tùy kỳ hạn và upfront)
+- Convertible Reserved: giảm ~66%
+- Saving Plans: giảm tương tự RI ~70%
+- Dedicated Host: giá On-Demand, có thể giảm ~70% nếu Reserved
+- Capacity Reservation: giá On-Demand 
+
+# LƯU Ý CHO KỲ THI AWS:
+Khi nào nên dùng On-Demand, Reserved, Savings Plan, Spot, Dedicated Host, Dedicated Instance, Capacity Reservation.
