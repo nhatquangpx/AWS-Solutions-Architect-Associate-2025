@@ -1,0 +1,80 @@
+        # Mục tiêu bài học ##
+- Hiểu rõ cách hoạt động của EC2 Spot Instances bao gồm cơ chế giá, cách sử dụng, ưu - nhược điểm và các tình huống áp dụng phù hợp
+- Hướng dẫn chi tiết về Spot Request, Spot Block, Spot Fleet -> tận dụng Spot Instances nhằm tối ưu chi phí trên AWS một cách an toàn và hiệu quả
+
+# Tổng quan về Spot Instances
+- Spot Instances là loại EC2 Instance cho phép tiết kiệm đến 90% so với On-Demand Instance 
+- Ý tưởng: Đặt ra một giá tối đa (max spot price) mà bạn sẵn sàng trả 
+    + Nếu spot price < max price -> bạn giữ được instance
+    + Nếu spot price > max price -> instance sẽ bị thu hồi 
+-> Đây là cách tối ưu chi phí, đặc biệt cho các workload không yêu cầu ổn định 100% 
+
+# Cơ chế hoạt động của Spot Price 
+- Spot Price thay đổi theo cung - cầu (offer & capacity) trên AWS 
+- Khi spot price vượt quá max price -> AWS cho bạn 2 phút cảnh báo (grace period) để chọn:
+    + Stop instance -> ngừng máy, sau này khi giá giảm xuống, bạn có thể restart và tiếp tục
+    + Terminate instance -> hủy luôn, sau này khi cần thì tạo mới instance từ đầu 
+-> AWS cung cấp 2 chiến lược để xử lý khi bị reclaim: Stop (giữ trạng thái) hoặc Terminate (không giữ)
+
+# Spot Block 
+- Nếu không muốn instance bị reclaim, bạn có thể dùng Spot Block
+- Spot Block cho phép giữ instance 1-6 giờ liên tục mà không bị gián đoạn 
+- Dù tài liệu AWS nói vẫn có rất hiếm trường hợp bị reclaim, nhưng hầu hết Spot Block được xem như ổn định
+-> Dùng Spot Block khi bạn có workload ngắn hạn nhưng cần đảm bảo chạy liên tục
+
+# Khi nào nên dùng Spot Instances
+- Batch jobs
+- Data analysis
+- Workloads có thể chịu lỗi (resilient to failures)'
+X Không phù hợp cho critical jobs hoặc databases (vì rủi ro gián đoạn)
+
+# Spot Instance Pricing 
+- Ví dụ thực tế:
+    + Instance loại m4.large theo dõi trong 3 tháng 
+    + Mỗi AZ có một mức giá Spot khác nhau -> giá biến động liên tục
+    + Đặt max spot price như một đường kẻ ngang
+        . Nếu spot price < max price -> bạn có instance
+        . Nếu spot price > max price -> bạn mất instance 
+- So sánh:
+    + On-Demand price: $0.10/giờ
+    + Spot Instance price: có thể chỉ khoảng $0.04-0.05/giờ -> tiết kiệm tới 60%
+- Không ai có thể dự đoán chính xác biến động giá, nhưng nhìn chung, Spot Instance luôn rẻ hơn On-Demand rất nhiều 
+
+# Spot Request
+- Để dùng Spot Instance, phải tạo Spot Request:
+    + Xác định:
+        . Số lượng instance muốn chạy 
+        . Giá tối đa 
+        . Thông tin launch (AMI, cấu hình)
+        . Thời gian hiệu lực của request 
+    + Có 2 loại Spot Request:
+        . One-time request: chỉ thực hiện một lần, khi được cấp instance thì request kết thúc 
+        . Persistent request: liên tục, nếu instance bị stop/terminate, request sẽ tự động khởi tạo lại instance mới khi giá phù hợp 
+- Điều quan trọng:
+    + Nếu muốn hủy hẳn Spot Instance:
+        . Cancel Spot Request trước
+        . Sau đó terminate instance 
+    + Nếu bạn terminate instance trước mà chưa cancel request -> AWS sẽ tạo lại instance mới (vì persistent request vẫn còn hiệu lực)
+    ### ĐÂY LÀ ĐIỂM RẤT DỄ BỊ HỎI TRONG KỲ THI ###
+
+# Spot Fleets
+- Spot Fleet là cách nâng cao để dùng Spot Instances
+- Spot Fleet cho phép bạn yêu cầu tập hợp Spot Instances (thậm chí kết hợp cả On-Demand)
+- Fleet sẽ cố gắng đáp ứng target capacity trong giới hạn mà bạn đặt ra 
+- Spot Fleet chọn instance từ nhiều launch pools:
+    + Nhiều loại Instance
+    + Nhiều OS
+    + Nhiều AZ 
+- Các chiến lược phân bổ trong Spot Fleet: 
+    1. Lowest Price -> chọn pool có giá rẻ nhất 
+    -> Phù hợp workload ngắn hạn, tối ưu chi phí
+    2. Diversified -> phân tán workload ra nhiều pool
+    -> Giúp tăng availability, tốt cho workload dài hạn 
+    3. Capacity Optimized -> chọn pool có dung lượng phù hợp nhất 
+    4. Price-Capacity Optimized -> kết hợp cả 2: chọn pool có nhiều capacity nhất rồi lấy giá thấp nhất trong đó 
+    -> Đây là lựa chọn tốt nhất cho đa số workload 
+- Lợi ích Spot Fleet:
+    + Linh hoạt chọn nhiều loại instance/AZ
+    + Tự động chọn option tối ưu về chi phí và năng lực 
+    + Tiết kiệm hơn cả Spot Instance đơn lẻ 
+    
