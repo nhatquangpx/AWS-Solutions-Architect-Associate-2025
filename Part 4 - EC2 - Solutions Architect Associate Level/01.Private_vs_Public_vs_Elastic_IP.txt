@@ -1,0 +1,59 @@
+        ### Mục tiêu bài học ###
+- Hiểu rõ sự khác biệt giữa Public IP (dùng để giao tiếp qua Internet, phải duy nhất toàn câu) với Private IP (dùng trong mạng nội bộ, có thể trùng lặp giữa các mạng khác nhau)
+- Nắm khái niệm Elastic IP: một Public IPv4 tĩnh trong AWS, giúp gắn cố định cho EC2 nhưng không khuyến khích sử dụng lâu dài -> nên thay thế bằng DNS hoặc Load Balancer 
+
+# Giới thiệu về địa chỉ IP (IPv4 và IPv6)
+- IP (Internet Protocol Address) là địa chỉ định danh của một máy trên mạng
+- Có IPv4 và IPv6:
+    + IPv4: dạng phổ biến nhất hiện nay, cấu trúc là 4 nhóm số cách nhau bằng dấu chấm, ví dụ 192.168.1.1
+        . Mỗi nhóm số từ 0 -> 255
+        . Tổng cộng có khoảng 3.7 tỉ địa chỉ IPv4 trong không gian công khai
+        . Do lượng địa chỉ hạn chế, IPv4 đang dần cạn kiệt
+    + IPv6: là phiên bản mới, có chuỗi dài gồm chứ và số, ví dụ: 2001:0db8:85a3::8a2re:0307:7334
+        . Được thiết kế để thay thế IPv4, đặc biệt hữu ích cho IoT
+        . Trong khóa học này chủ yếu làm việc với IPv4, tuy nhiên AWS cũng hỗ trợ cả IPv6
+
+# Public IP và Private IP
+- Public IP:
+    + Định nghĩa: Máy có Public IP thì có thể được nhận diện và truy cập trực tiếp từ Internet 
+    + Đặc điểm:
+        . Phải duy nhất trên toàn cầu
+        . Người khác có thể xác định vị trí địa lý (geolocation) của bạn qua Public IP
+        . Dùng để giao tiếp giữa các máy chủ công khai, ví dụ: web server, ứng dụng online 
+- Private IP:
+    + Định nghĩa: Chỉ dùng trong mạng nội bộ (private network), không thể trực tiếp truy cập từ Internet
+    + Đặc điểm:
+        . Chỉ cần duy nhất trong mạng riêng 
+        . Các mạng khác nhau có thể dùng cùng một private IP mà không xung đột 
+        . Để ra ngoài Internet, các máy dùng NAT (Network Address Translation) và Internet Gateway làm proxy 
+        . Chỉ có một số dải IP nhất định được coi là Private IP (ví dụ: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+- Khác biệt cơ bản:
+    + Public IP = toàn cầu, công khai, duy nhất trên Internet 
+    + Private IP = nội bộ, chỉ trong mạng riêng, có thể trùng nhau giữa các mạng khác nhau 
+
+# Elastic IP (EIP)
+- Vấn đề:
+    + Trong AWS, khi bạn stop/start một EC2 Instance, Public IP của nó sẽ thay đổi 
+    + Nếu bạn muốn gắn cố định một địa chỉ IP cho instance (ví dụ, để client hoặc DNS luôn trỏ đúng), thì cần một Elastic IP 
+- Elastic IP là gì?
+    + Là một Public IPv4 cố định mà bạn "sở hữu" trong AWS, cho đến khi bạn xóa nó
+    + Có thể gán cho 1 instance tại một thời điểm 
+    + Có thể nhanh chóng chuyển từ instance này sang instance khác để giảm downtime khi instance cũ bị lỗi 
+- Hạn chế:
+    + Mặc định mỗi tài khoản AWS chỉ được cấp tối đa 5 Elastic IP 
+    + Có thể xin tăng giới hạn nhưng khá hiếm 
+- Khuyến nghị:
+    + AWS khuyên hạn chế dùng EIP vì nó được coi là giải pháp kém tối ưu 
+    + Thay vì dựa vào IP cố định, nên:
+        . Dùng DNS (Route 53) để ánh xạ domain đến IP 
+        . Hoặc dùng Load Balancer để tránh phụ thuộc vào IP trực tiếp 
+-> EIP phù hợp cho tình huống cần IP tĩnh, nhưng kiến trúc hiện đại nên dùng DNS/Load Balancer thay thế 
+
+# Thực hành 
+- Khi bạn khởi tạo một EC2 instance trong AWS, mặc định nó sẽ có:
+    + Private IP: dùng trong mạng nội bộ AWS (VPC).
+    + Public IP: để kết nối với Internet (nếu có).
+- Khi bạn SSH vào EC2:
+    + Không thể dùng Private IP trừ khi bạn đang trong cùng mạng (hoặc kết nối VPN).
+    + Thông thường bạn dùng Public IP để SSH.
+- Lưu ý: nếu instance bị stop/start, Public IP sẽ thay đổi, trừ khi bạn gắn Elastic IP.
