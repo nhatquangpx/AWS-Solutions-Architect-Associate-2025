@@ -1,0 +1,42 @@
+        ### Mục tiêu bài học ###
+- Hiểu Elastic Network Interface (ENI) là gì và vai trò của nó trong VPC 
+- Nắm rõ thuộc tính chính của ENI: private IP, Elastic IP, security group, MAC address 
+- Biết cách tạo, gắn, di chuyển ENI giữa các EC2 để phục vụ nhu cầu kết nối mạng và failover 
+
+# Elastic Network Interface (ENI) là gì?
+- ENI là một thành phần logic trong VPC (Virtual Private Cloud)
+- Nó đại diện cho một card mạng ảo (virtual network card)
+- Chính ENI là thành phần cung cấp khả năng kết nối mạng cho EC2 Instance 
+- Nhưng ENI không chỉ dùng cho EC2, sau này trong khóa học còn được ứng dụng ở nhiều dịch vụ khác 
+- Ví dụ:
+    + Trong một AZ, bạn có một EC2 instance 
+    + EC2 này mặc định sẽ được gắn một ENI chính -  gọi là Primary ENI, thường được gắn vào cổng eth0
+    + ENI này cung cấp kết nối mạng cho instance, và thường có Private IP kèm theo 
+
+# Các thuộc tính chính của một ENI 
+- Một ENI có thể có những đặc điểm sau:
+    + Primary private IPv4: luôn luôn có ít nhất một địa chỉ IPv4 riêng (private)
+    + Secondary private IPv4: có thể gán thêm nhiều địa chỉ IPv4 phụ 
+    Ví dụ: bạn có thể gắn thêm một ENI khác vào cùng EC2 (gắn ở eth1), thì nó sẽ có thêm một private IPv4 nữa 
+    + Elastic IPv4: mỗi private IPv4 có thể gán kèm một Elastic IP (địa chỉ IP tĩnh, công khai)
+    + Public IPv4: có thể có một hoặc nhiều địa chỉ công khai 
+    + Security Groups: bạn có thể gán một hoặc nhiều nhóm bảo mật trực tiếp vào ENI 
+    + MAC address: mỗi ENI có địa chỉ MAC riêng 
+-> Đây là các yếu tố quan trọng nhất cần nhớ, ngoài ra ENI còn có thêm nhiều thuộc tính khác 
+
+# Tính chất của ENI 
+- ENI có thể được tạo độc lập với EC2 Instance: Bạn có thể tạo một ENI riêng rồi sau đó mới gắn nó vào một EC2 Instance bất kỳ 
+- ENI có thể được gắn/dỡ ra "on the fly" (ngay khi đang chạy)
+- Có thể di chuyển ENI từ EC2 này sang EC2 khác để phục vụ mục đích failover 
+- LƯU Ý: ENI bị ràng buộc với một AZ. Tức là nếu bạn tạo ENI ở us-east-1a thì ENI đó chỉ gắn được cho EC2 trong cùng AZ 
+
+# Ví dụ về failover với ENI
+- Giả sử bạn có hai EC2 Instances trong cùng một AZ 
+- EC2 đầu tiên có một ENI phụ (eth1) với một private IP quan trọng 
+- Nếu EC2 này gặp sự cố, bạn có thể gỡ ENI đó ra và gắn sang EC2 thứ hai 
+- Khi đó private IP sẽ được chuyển từ máy thứ nhất sang máy thứ 2
+-> Điều này cực kỳ hữu ích khi bạn có một ứng dụng hoặc dịch vụ mà khách hàng kết nối thông qua một private static IP 
+    + Nếu một máy hỏng, bạn chỉ cần gắn ENI sang máy khác, dịch vụ sẽ tiếp tục chạy bình thường 
+    + Đây chính là cách triển khai failover đơn giản nhưng hiệu quả trong AWS 
+    
+
