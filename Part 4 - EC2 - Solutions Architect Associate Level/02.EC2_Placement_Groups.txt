@@ -1,0 +1,64 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm Placement Group trong AWS EC2 và lý do cần sử dụng 
+- Nắm rõ 3 loại Placement Group: Cluster, Spread, Partition cùng đặc điểm, ưu - nhược điểm
+- Biết cách lựa chọn Placement Group phù hợp với usecase thực tế (hiệu năng cao, tính sẵn sàng cao, hay big data phân tránh)
+
+# Placement Groups là gì?
+- Placement Groups là một tính năng nâng cao trong AWS EC2, cho phép bạn kiểm soát các EC2 Instances được đặt (placement) trong hạ tầng phần cứng của AWS 
+- Mặc dù chúng ta không trực tiếp can thiệp vào phần cứng AWS, nhưng Placement Group giúp ta đưa ra yêu cầu chiến lược để AWS sắp xếp máy ảo của mình theo mong muốn 
+- Việc này đặc biệt quan trọng với các ứng dụng yêu cầu:
+    + Hiệu năng mạng cao (low latency, high throughput)
+    + Độ sẵn sàng mạng cao (high availability)
+    + Khả năng mở rộng cho big data (Hadoop, Cassandra, Kafka...)
+
+# 3 chiến lược Placement Group
+a. Cluster Placement Group
+- Tất cả EC2 instance sẽ được gom lại trong cùng một Availability Zone
+- Ưu điểm:
+    + Hiệu năng mạng cực cao giữa các EC2, lên đến 10 Gbps
+    + Độ trễ thấp, băng thông lớn -> thích hợp cho các workload tính toán nặng 
+- Nhược điểm:
+    + Rủi ro cao: Nếu AZ đó gặp sự cố, toàn bộ Instances sẽ cùng ngừng hoạt động 
+- Usecase:
+    + Big data jobs cần hoàn thành rất nhanh
+    + Ứng dụng đòi hỏi low latency, high throughput networking giữa các máy (VD: hệ thống HPC - High Performance Computing)
+
+b. Spread Placement Group
+- Các EC2 Instances sẽ được trải đều trên nhiều phần cứng khác nhau (mỗi instance ở trên một phần cứng vật lí riêng biệt)
+- Có thể trải trên nhiều AZ trong một Region 
+- Ưu điểm:
+    + Giảm thiểu rủi ro: nếu một phần cứng vật lí hỏng, chỉ 1 instance bị ảnh hưởng 
+    + Tăng high availability
+- Nhược điểm:
+    + Giới hạn: tối đa 7 EC2 instances / mỗi AZ / mỗi Spread Placement Group 
+    + Do đó chỉ phù hợp với ứng dụng nhỏ - vừa, nhưng yêu cầu độ tin cậy cao
+- Usecase:
+    + Ứng dụng quan trọng (critical applications) -> cần đảm bảo các instances không bị hỏng đồng loạt 
+    + Ví dụ: dịch vụ backend core, hệ thống xử lí thanh toán...
+
+c. Partition Placement Group 
+- Là sự kết hợp ý tưởng của Spread + khả năng mở rộng lớn 
+- Instances được chia thành nhiều Partition, mỗi partition là một tập hợp phần cứng riêng biệt (thường là một rack)
+- Mỗi Partition cách ly với Partition khác, tức là nếu 1 rack hỏng thì rack khác vẫn hoạt động bình thường 
+- Có thể có tối đa 7 partitions / mỗi AZ, có thể trải rộng trên nhiều AZ trong cùng Region 
+- Ưu điểm: 
+    + Có thể chứa hàng trăm EC2 instances trong 1 Placement Group 
+    + Tăng độ bền vững nhờ cô lập theo rack 
+    + Cho phép ứng dụng "partition-aware" để phân bổ dữ liệu hợp lý 
+- Nhược điểm: 
+    + Yêu cầu ứng dụng phải hiểu "partition-aware" để phân bổ dữ liệu hợp lý 
+- Usecase:
+    + Các ứng dụng big data phân tán: Hadoop (HDFS), HBase, Apache Cassandra, Apache Kafka 
+    + Các hệ thống cần vừa hiệu năng vừa khả năng chịu lỗi (fault-tolerant)
+
+# Tóm tắt sự khác nhau 
+| Loại Placement Group | Cách bố trí                                                       | Ưu điểm                                       | Nhược điểm                       | Use case                  |
+| -------------------- | ----------------------------------------------------------------- | --------------------------------------------- | -------------------------------- | ------------------------- |
+| **Cluster**          | Gom tất cả vào 1 AZ                                               | Hiệu năng cao, low latency, throughput lớn    | Rủi ro cao nếu AZ fail           | HPC, big data job nhanh   |
+| **Spread**           | Mỗi instance trên 1 phần cứng khác nhau, tối đa 7/AZ              | High availability, giảm rủi ro hỏng đồng loạt | Giới hạn số lượng                | Ứng dụng critical nhỏ–vừa |
+| **Partition**        | Chia theo rack (partition), nhiều partition trong 1 hoặc nhiều AZ | Hỗ trợ hàng trăm instance, fault tolerance    | Yêu cầu ứng dụng partition-aware | Hadoop, Cassandra, Kafka  |
+
+# Kết luận 
+- Cluster Placement Group → chọn khi cần hiệu năng mạng cực cao.
+- Spread Placement Group → chọn khi ứng dụng quan trọng, cần độ tin cậy, nhưng số lượng instance ít.
+- Partition Placement Group → chọn cho big data, hệ thống phân tán, cần mở rộng lớn và chịu lỗi.
