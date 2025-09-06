@@ -1,0 +1,44 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm EC2 Hibernate và sự khác biệt với Stop và Terminate 
+- Nắm rõ cách hoạt động của Hibernate: lưu trạng thái RAM vào EBS và khôi phục nhanh khi khởi động lại 
+- Biết các yêu cầu và giới hạn của Hibernate (RAM, EBS, loại instance, thời gian tối đa...)
+- Xác định usecase phù hợp để áp dụng Hibernate nhằm tối ưu hiệu năng và thời gian khởi động 
+
+# Chúng ta đã quen với việc Stop hoặc Terminate EC2 instance:
+- Stop: khi dừng một instance, dữ liệu trên EBS volumne vẫn được giữ nguyên cho đến lần khởi động tiếp theo 
+- Terminate: nếu cấu hình root volume bị xóa khi terminate, nó sẽ bị hủy; nhưng các volume khác (nếu không cấu hình xóa) sẽ vẫn được giữ lại 
+-> Khi khởi động lại từ trạng thái Stop, OS sẽ boot lại từ đầu:
+    + EC2 User Data chạy lại 
+    + Ứng dụng cần khởi động lại 
+    + Bộ nhớ đệm (cache) phải được làm nóng lại 
+    -> Tất cả những điều này khiến quá trình khởi động mất thời gian 
+
+# EC2 Hibernate - Giải pháp tăng tốc khởi động 
+- Với Hibernate, chúng ta đạt được trạng thái mới:
+    + Toàn bộ trạng thái RAM (in-memory state) của instance sẽ được lưu lại vào EBS root volume
+    + Khi khởi động lại, RAM được nạp lại từ EBS, giống như instance chưa bao giờ bị dừng 
+- Quy trình hoạt động:
+    1. Instance đang chạy với dữ liệu trong RAM 
+    2. Khi Hibernate:
+        + Instance chuyển sang trạng thái stopping 
+        + Nội dung RAM được dump vào EBS volume 
+        + Instance tắt, RAM thực tế biến mất, nhưng dữ liệu RAM đã lưu trong EBS 
+    3. Khi khởi động lại:
+        + RAM được nạp lại từ EBS vào bộ nhớ instance 
+        + Instance hoạt động trở lại ngay tại trạng thái trước đó (ứng dụng, cache, tiến trình vẫn như cũ)
+-> Điều này giúp khởi động cực nhanh và tránh khởi động lại ứng dụng từ đầu
+
+# Usecase cho Hibernate
+- Ứng dụng chạy lâu dài mà bạn không muốn dừng hẳn 
+- Cần giữ nguyên trạng thái RAM (session, cache, tiến trình)
+- Ứng dụng khởi động chậm, cần giảm tối đa thời gian boot 
+
+# Các yêu cầu & giới hạn của Hibernate
+- Hỗ trợ nhiều loại instance family, cả Linux và Windows
+- RAM của instance phải < 150 GB (có thể thay đổi theo thời gian)
+- Không hỗ trợ bare metal instances 
+- Root volume phải là EBS volume:
+    + Bắt buộc mã hóa (encrypted)
+    + Dung lượng đủ lớn để chứa toàn bộ dữ liệu RAM dump xuống 
+- Hoạt động với On-Demand, Reserved và Spot instances
+- Hibernate chỉ duy trì tối đa 60 ngày (giới hạn hiện tại)
