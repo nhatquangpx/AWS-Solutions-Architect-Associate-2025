@@ -1,0 +1,44 @@
+        ### Mục tiêu bài học ### 
+- Hiểu EBS Snapshot là gì và mục đích của nó 
+- Biết cách sử dụng snapshot để di chuyển dữ liệu giữa AZ và Region 
+- Nắm được 3 tính năng quan trọng liên quan đến snapshots:  
+    1. EBS Snapshot Archive
+    2. Recycle Bin for EBS snapshots
+    3. Fast Snapshot Restore (FSR)
+- Nhận thức được ưu điểm, hạn chế và chi phí liên quan khi dùng các tính năng này 
+
+# EBS Snapshot là gì?
+- EBS Snapshot là một bản sao lưu (backup) tại một thời điểm (point-in-time backup) của EBS Volume
+- Khi bạn tạo snapshot, bạn không cần phải detach EBS Volume khỏi EC2 Instance 
+Tuy nhiên, khuyến nghị nên detach để đảm bảo dữ liệu nhất quán, tránh rủi ro dữ liệu bị thay đổi trong lúc sao lưu 
+-> Nói đơn giản: Snapshot giống như việc chụp ảnh màn hình (sao lưu trạng thái hiện tại) của ổ đĩa EBS 
+
+# Khả năng di chuyển dữ liệu bằng Snapshot 
+- Bạn có thể copy snapshot sang AZ khác hoặc thậm chí Region khác 
+- Ví dụ:
+    + Bạn có 1 EC2 Instance trong us-east-1a gắn với một EBS Volume 
+    + Bạn muốn EC2 Instance ở us-east-1b có cùng dữ liệu 
+    + Giải pháp: Tạo 1 snapshot từ volume trong us-east-1a, rồi restore snapshot này trong us-east-1b 
+
+# Các tính năng quan trọng của EBS Snapshot 
+1. EBS Snapshot Archive 
+- Cho phép bạn chuyển snapshot sang Archive Tier
+- Ưu điểm: giảm chi phí tới 75% so với lưu ở standard tier 
+- Hạn chế:
+    + Khi muốn khôi phục snapshot từ archive -> cần 24-72 giờ
+    + Không phù hợp khi cần restore ngay lập tức 
+-> Dùng cho các snapshot lâu đời, ít khi cần dùng lại, chỉ để lưu trữ dài hạn 
+
+2. Recycle Bin for EBS Snapshots 
+- Khi bạn xóa snapshot, thay vì mất vĩnh viễn, nó sẽ chuyển vào Recycle Bin 
+- Từ Recycle Bin, bạn có thể khôi phục snapshot nếu xóa nhầm
+- Thời gian giữ snapshot trong RB có thể cấu hình từ 1 ngày -> 1 năm 
+
+3. Fast Snapshot Restore (FSR)
+- Mục đích: Loại bỏ độ trễ khi sử dụng snapshot lần đầu 
+- Khi bật FSR, AWS khởi tạo đầy đủ snapshot trước, nhờ đó:
+    + Khi bạn tạo EBS volume từ snapshot, nó sẵn sàng dùng ngay
+    + Không bị tình trạng latency cao ở lần truy cập đầu tiên 
+- Trường hợp sử dụng: snapshot rất lớn, cần khởi chạy nhanh EC2 instance hoặc restore volume khẩn cấp 
+- Nhược điểm: chi phí cao
+-> Nên cân nhắc kỹ, chỉ dùng khi thực sự cần tốc độ khởi tạo nhanh 
