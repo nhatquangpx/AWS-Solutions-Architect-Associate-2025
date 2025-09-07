@@ -1,0 +1,44 @@
+        ### Mục tiêu bài học ###
+- Hiểu EBS Volume là gì và tại sao nó quan trọng với EC2 
+- Biết cách hoạt động và các đặc tính chính của EBS Volumes: gắn kết (attach/detach), tính AZ-bound, và khả năng snapshot
+- Hiểu khái niệm Delete on Termination và cách thiết lập ảnh hưởng đến việc lưu trữ dữ liệu khi EC2 bị terminate 
+- Nhận biết các usecase thực tế của EBS trong môi trường AWS 
+
+# Giới thiệu về các lựa chọn lưu trữ cho EC2
+- Khi làm việc với EC2 Instances, bạn sẽ có nhiều lựa chọn khác nhau. Quan trọng nhất chính là EBS Volumes (Elastic Book Store)
+
+# EBS Volume là gì?
+- Elastic Book Store là một ổ đĩa khối lưu trữ trên mạng (network drive)
+- Nó không phải ổ cứng vật lý trong máy EC2, mà kết nối với EC2 thông qua mạng 
+- Cho phép lưu trữ dữ liệu bền vững (persist data) ngay cả khi EC2 Instance bị terminate 
+    Ví dụ: Bạn có thể tạo lại một EC2 Instance và mount cùng một EBS Volume cũ để lấy lại toàn bộ dữ liệu trước đó 
+-> Nói đơn giản: EBS Volume giống như một USB gắn ngoài qua mạng. Bạn có thể tháo ra khỏi một máy (EC2) và gắn vào một máy khác 
+
+# Đặc tính quan trọng của EBS Volumes
+1. Chỉ gắn với một EC2 instance tại một thời điểm (ở cấp độ Cloud Practitioner)
+- Tức là một EBS không thể gắn đồng thời vào 2 máy EC2 
+- Nhưng một EC2 có thể gắn nhiều EBS Volumes khác nhau (như cắm nhiều USB vào một máy tính)
+2. Bounded to an AZ 
+- Khi bạn tạo một EBS Volume trong us-east-1a, nó chỉ có thể attach vào EC2 nằm trong vùng us-east-1a
+- Bạn không thể attach trực tiếp volume đó vào EC2 ở us-east-1b
+3. Snapshots giúp di chuyển dữ liệu giữa AZs
+- Nếu muốn sử dụng cùng một volume ở AZ khác, bạn phải tạo snapshot rồi từ snapshot đó tạo volume mới ở AZ mong muốn 
+4. Provision capacity trước:
+- Khi tạo EBS, bạn phải chỉ định kích thước (GB) và IOPS (I/O Operations per Second)
+- Chi phí tính dựa trên dung lượng và hiệu năng bạn provision, không phụ thuộc vào việc bạn có dùng hết hay không 
+- Bạn có thể tăng dung lượng hoặc hiệu năng sau này nếu cần 
+
+# Delete on Termination 
+- Một điểm quan trọng trong EBS rất hay xuất hiện trong exam question chính là Delete on Termination 
+- Khi bạn tạo EC2 và gắn kèm EBS:
+    + Root volume (ổ chính cài OS): mặc định Delete on Termination = Enabled 
+    Nghĩa là khi EC2 terminate -> root volume cũng sẽ bị xóa 
+    + Các EBS Volume bổ sung: mặc định Delete on Termination = Disabled
+    Nghĩa là khi EC2 terminate -> volume vẫn được giữ lại để bảo toàn dữ liệu 
+- Bạn có thể thay đổi tùy chọn này:
+    + Nếu muốn giữ lại root volume khi terminate instance → tắt Delete on Termination
+    + Nếu muốn xóa luôn data volume khi EC2 bị terminate → bật Delete on Termination
+- Ví dụ thực tế:
+    + Bạn chạy một EC2 Instance với root volume và một data volume chứa database 
+    + Nếu terminate instance, bạn thường muốn giữ lại database volume để gắn vào instance khác -> do đó Delete Termination của data volume thường để Disabled 
+
