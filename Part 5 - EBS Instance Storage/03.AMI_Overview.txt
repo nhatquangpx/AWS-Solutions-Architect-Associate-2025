@@ -1,0 +1,51 @@
+        ### Mục tiêu bài học ###
+- Hiểu AMI là gì và vai trò của nó đối với EC2 
+- Biết các loại AMI mà bạn có thể sử dụng: Public AMI, Custom AMI, Marketplace AMI 
+- Nắm được quy trình tạo AMI từ một EC2 instance 
+- Hiểu được cách sử dụng AMI để triển khai EC2 nhanh chóng trên cùng hoặc khác AZ, thậm chí across Region 
+
+# Khái niệm AMI 
+- AMI = Amazon Machine Image 
+- Nó là một hình ảnh (image) chứa cấu hình cần thiết để khởi chạy EC2 instance 
+- Nói cách khác: AMI chính là thứ "tiếp năng lượng" cho EC2 instance, giúp xác định instance sẽ chạy hệ điều hành gì, phần mềm nào, công cụ giám sát nào ngay từ khi khởi tạo 
+-> Ví dụ: Nếu bạn muốn tất cả server đều cài Linux + Apache + Monitoring Tool, bạn có thể đóng gói sẵn chúng vào AMI. Khi tạo EC2 mới, nó sẽ có đủ mọi thứ ngay lập tức 
+
+# Lợi ích của việc dùng AMI 
+- Khởi động và cấu hình nhanh hơn: thay vì phải cài phần mềm thủ công mỗi lần tạo EC2, bạn dùng AMI đã chuẩn bị sẵn 
+- Đồng bộ hóa hệ thống: mọi EC2 khởi tạo từ cùng một AMI sẽ có cấu hình giống hệt nhau 
+- Tận dụng hạ tầng toàn cầu AWS: AMI có thể được copy sang Region khác để triển khai trên quy mô toàn cầu 
+
+# Các loại AMI:
+1. Public AMI (AMI công khai)
+- Được AWS cung cấp sẵn
+- Ví dụ: Amazon Linux 2 AMI, đây là AMI phổ biến nhất mà rất nhiều người dùng AWS lựa chọ 
+- Ưu điểm: miễn phí, sẵn sàng sử dụng 
+2. Custom AMI (AMI tự tạo)
+- Bạn tự tạo từ một EC2 đã được tùy chỉnh (ví dụ: cài thêm phần mềm, cấu hình hệ thống)
+- Bạn sẽ tự duy trì và quản lí các bản AMI này 
+- Có thể tự động hóa quá trình build AMI bằng các công cụ (VD: Packer, CodePipeline)
+3. Marketplace AMI (AMI từ AWS Marketplace)
+- Do bên thứ ba (vendor) tạo ra, thuờg là các hãng phần mềm 
+- Họ đóng gói phần mềm (VD: WordPress, Jenkins, SAP, bảo mật firewall, v.v) và bán trên AWS Marketplace 
+- Bạn có thể mua và sử dụng ngay để tiết kiệm thời gian cấu hình 
+- Ngay cả bạn, với tư cách user, cũng có thể kinh doanh bằng cách bán AMI trên Marketplace 
+
+# Quy trình tạo Custom AMI 
+- Để tạo AMI từ một EC2 Instance, các bước là:
+1. Khởi chạy một EC2 instance từ một AMI gốc (ví dụ Amazon Linux 2)
+2. Tùy chỉnh: cài đặt phần mềm, chỉnh OS, cấu hình theo nhu cầu 
+3. Stop instance: để đảm bảo tính toàn vẹn dữ liệu (integrity)
+4. Tạo AMI từ instance đó:
+    + AWS sẽ tự động tạo EBS Snapshot phía sau để lưu lại trạng thái ổ đĩa
+    + Sau đó AMI sẽ được lưu trong account của bạn 
+5. Sử dụng lại AMI: từ AMI này, bạn có thể khởi chạy nhiều EC2 mới có cấu hình y hệt 
+
+# Ví dụ triển khai đa AZ 
+- Giả sử:
+    + Bạn có một EC2 ở us-east-1a
+    + Bạn muốn có thêm một EC2 y hệt ở us-east-1b
+- Cách làm:
+    1. Khởi tạo và cấu hình EC2 ở us-east-1a
+    2. Dừng instance và tạo Custom AMI từ nó
+    3. Dùng AMI này để khởi tạo EC2 mới ở us-east-1b
+-> Có 2 EC2 ở hai AZ khác nhau nhưng cấu hình giống hệt nhau 
