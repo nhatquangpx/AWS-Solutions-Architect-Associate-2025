@@ -1,0 +1,37 @@
+        ### Mục tiêu bài học ###
+- Hiểu EC2 Instance Store là gì và cách hoạt động
+- So sánh Instance Store với EBS về hiệu năng và tính bền vững (durability)
+- Biết trường hợp sử dụng phù hợp cho Instance Store (cache, buffer, dữ liệu tạm thời)
+- Nhận thức được rủi ro và trách nhiệm khi dùng Instance Store (mất dữ liệu khi stop/terminate, hỏng phần cứng)
+
+# Tại sao cần Instance Store?
+- Trước giờ ta đã thấy cách gắn một EBS volume vào EC2 instance
+- EBS có hiệu năng rất tốt, nhưng đôi khi bạn cần hiệu năng còn cao hơn nữa
+- Và để đạt được hiệu năng vượt trội đó, AWS cho phép ta sử dụng ổ đĩa phần cứng thật (hardware disk) gắn trực tiếp vào server vật lý chạy EC2 
+- Loại ổ đĩa này được gọi là EC2 Instance Store 
+
+# Đặc điểm của EC2 Instance Store 
+- Gắn trực tiếp vào server vật lý -> hiệu năng I/O cực cao 
+- Dùng cho workload cần throughput lớn và tốc độ nhanh 
+- Nhưng hạn chế lớn:
+    + Nếu bạn stop hoặc terminate EC2 instance, dữ liệu trong Instance Store sẽ bị mất 
+    + Do đó Instance Store được gọi lf ephemeral storage (bộ nhớ tạm thời, không bền vững)
+
+# Trường hợp sử dụng phù hợp 
+- Instance Store không phù hợp cho lưu trữ lâu dài, thay vào đó nên dùng trong các tình huống sau:
+    + Buffer/Cache: nơi chứa dữ liệu trung gian để tăng tốc xử lý
+    + Scratch data: dữ liệu tạm thời, phục vụ cho các tác vụ tính toán, sau đó có thể xóa đi 
+    + Temporary content: nội dung không cần giữ lâu dài 
+- Còn nếu bạn muốn lưu trữ lâu dài, bền vững và an toàn -> nên dùng EBS 
+
+# Rủi ro khi sử dụng Instance Store 
+- Nếu phần cứng của server vật lý EC2 bị lỗi, bạn sẽ mất dữ liệu trên Instance Store 
+- AWS không chịu trách nhiệm backup dữ liệu Instance Store cho bạn 
+- Vì vậy, nếu quyết định sử dụng Instance Store -> bạn phải tự backup và replicate dữ liệu theo nhu cầu 
+
+# Hiệu năng cực cao của Instance Store 
+- Ví dụ, loại instance I3 có Instance Store kèm theo 
+- Hiệu năng I/O (IOPS):
+    + Random Read IOPS: lên tới 3.3 triệu 
+    + Random Write IOPS: khoảng 1.4 triệu 
+- Trong khi đó, một EBS volume loại gp2 chỉ đạt khoảng 32000 IOPS 
