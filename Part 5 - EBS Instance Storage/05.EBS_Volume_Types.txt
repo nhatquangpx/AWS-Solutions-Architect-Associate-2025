@@ -1,0 +1,77 @@
+        ### Mục tiêu bài học ### 
+- Hiểu EBS volumes là gì và các loại volume khác nhau hiện có 
+- Phân biệt được 6 loại volume: gp2, gp3, io1, io2 Block Express, st1, sc1
+- Biết đặc điểm, ưu nhược điểm và usecase của từng loại 
+- Ghi nhớ các điểm quan trọng cho kỳ thi AWS: boot volume, IOPS, throughput, và khi nào chọn gp2/gp3, io1/io2, st1, sc1
+
+# Tổng quan về EBS Volume Types
+- Hiện nay, AWS có 6 loại EBS Volumes và có thể nhóm thành 3 nhóm lớn:
+1. General Purpose SSD 
+- gp2, gp3
+- Cân bằng giữa giá thành và hiệu năng
+- Phù hợp cho đa dạng workload (boot volume, test, dev, hệ thống chung)
+2. Provisioned IOPS SSD (Hiệu năng cao nhất)
+- io1, io2 Block Express 
+- Dùng cho workload mission-critical, yêu cầu low-latency và throughput cực cao 
+- Ví dụ: database quan trọng, ứng dụng cần IOPS rất lớn 
+3. HDD (Hard Disk Drive)
+- st1 (Throughput-optimized HDD) -> Dữ liệu truy cập thường xuyên, throughput lớn 
+- sc1 (Cold HDD) -> Dữ liệu truy cập ít, chi phí thấp nhất 
+
+# Các yếu tố khi định nghĩa một EBS Volume
+- Kích thước (Size): tính bằng GB hoặc TB
+- Throughput: tốc độ truyền tải dữ liệu (MB/s)
+- IOPS (Input/Output Operations Per Second): Số lượng thao tác đọc/ghi mỗi giây
+- LƯU Ý: Chỉ gp2, gp3, io1, io2 có thể dùng làm boot volume (chứa hệ điều hành)
+
+# Nhóm General Purpose SSD (gp2, gp3)
+- gp2:
+    + Loại cũ hơn, cost-effective
+    + Kích thước: 1GB -> 16 TB
+    + IOPS và kích thước gắn liền với nhau:
+        . Mỗi GB = 3 IOPS, có thể tăng tối đa 16.000 IOPS
+        . Ví dụ: volume 5.334 GB -> đạt max 16.000 IOPS
+    + Hỗ trợ burst lên 3.000 IOPS cho volume nhỏ
+    + Usecase: boot volume, desktop ảo, dev/test 
+- gp3 (phiên bản mới hơn, cải tiến so với gp2):
+    + Base: 3.000 IOPS và 125 MB/s throughput
+    + Có thể tăng độc lập:
+        . IOPS tối đa 16.000
+        . Throughput tối đa 1.000MB/s
+    + Ưu điểm lớn: IOPS và throughput không phụ thuộc vào kích thước volume 
+-> gp2 (IOPS gắn với size), gp3 (IOPS/throughput cấu hình độc lập)
+
+# Nhóm Provisioned IOPS SSD (io1, io2 Block Express)
+- io1:
+    + Kích thước: 4TB - 16 TB
+    + Max IOPS:
+        . 64.000 cho EC2 Nitro instances
+        . 32.000 cho instances khác 
+    + IOPS có thể tăng độc lập với kích thước 
+    + Usecase: database quan trọng, ứng dụng cần consistent IOPS > 16.000
+- io2 Block Express (phiên bản mới, mạnh hơn):
+    + Kích thước: tới 64 TB
+    + Latency: sub-millisecond
+    + Max IOPS: 256.000
+    + Tỉ lệ IOPS/GB: 1.000:1
+    + Hỗ trợ EBS Multi-Attach (chia sẻ volume cho nhiều EC2)
+-> TRONG KỲ THI: Khi gặp yêu cầu "high-performance database, consistent IOPS, > 32k IOPS" -> chọn io1/io2
+
+# Nhóm HDD Volumes (st1, sc1)
+- Không thể dùng làm boot volume, chỉ dùng cho data 
+- st1:
+    + Kích thước: lên tới 16 TB
+    + Throughput: 500 MB/s, IOPS tối đa 500
+    + Usecase: Big Data, Data Warehouse, xử lí log
+- sc1:
+    + Dùng cho dữ liệu ít truy cập 
+    + Max throughput: 250 MB/s, IOPS tối đa 250
+    + Chi phí rẻ nhất trong tất cả EBS Volume 
+    + Usecase: dữ liệu archive, backup 
+
+# GHI NHỚ:
+- gp2/gp3: general purpose, cost-effective, dùng được làm boot volume.
+- gp3: cho phép cấu hình IOPS/throughput độc lập → ưu việt hơn gp2.
+- io1/io2: dành cho workload quan trọng, database cần IOPS cao, consistency cao.
+- st1/sc1: HDD volumes, throughput-based, không làm boot volume, dùng cho Big Data/log (st1) hoặc archive (sc1).
+- Trên EC2 Nitro instances, bạn có thể vượt qua ngưỡng 32.000 IOPS với io1/io2.
