@@ -1,0 +1,63 @@
+        ### Mục tiêu bài học ###
+- Hiểu cơ chế mã hóa EBS volumes hoạt động như thế nào 
+- Nắm rõ những gì được mã hóa khi tạo EBS volume được bật encryption 
+- Biết cách mã hóa một EBS volume chưa được mã hóa 
+- Ghi nhớ các lựa chọn và shortcut khi làm việc với EBS encryption 
+
+# Khi bạn tạo một EBS volume đã bật encryption 
+- Ngay lập tức, sẽ có các đặc điểm sau:
+    + Data at rest (dữ liệu lưu trưc trong volume) được mã hóa 
+    + Data in flight (dữ liệu truyền giữa EC2 instance và EBS volume)
+    + Snapshots được tạo từ volume sẽ được mã hóa 
+    + Các volumes mới được tạo từ snapshots cũng sẽ được mã hóa 
+-> Có thể hiểu rằng: mã hóa được áp dụng toàn diện cho dữ liệu trong volume, dữ liệu truyền đi, snapshot, và các volume phát sinh từ snapshot 
+- Điểm quan trọng:
+    + Toàn bộ cơ chế mã hóa/giải mã là hoàn toàn tự động và được xử lý trong nền bởi EC2 và EBS 
+    + Bạn không cần phải làm gì thêm 
+
+# Hiệu suất và công nghệ mã hóa 
+- Mã hóa của EBS có tác động rất nhỏ đến độ trễ (latency), gần như không đáng kể
+- Mã hóa sử dụng KMS (Key Management Service) với chuẩn AES-256
+- Do đó, đây là một tính năng bạn nên LUÔN BẬT, vì gần như không ảnh hưởng đến hiệu suất 
+
+# Làm thế nào để mã hóa một EBS volume chưa được mã hóa 
+- Cách giải quyết: phải đi qua snapshot 
+- Các bước:
+    1. Tạo snapshot từ volume chưa mã hóa
+    -> Kết quả: snapshot này cũng sẽ không được mã hóa 
+    2. Copy snapshot và bật tùy chọn encryption
+    + Trong bước copy, bạn có thể chọn bật encryption và chọn KMS Key
+    -> Kết quả: snapshot copy này đã được mã hóa 
+    3. Tạo volume mới từ snapshot đã được mã hóa 
+    -> Kết quả: Volume mới này sẽ tự động được mã hóa
+    4. Gắn volume mới này vào EC2 instance ban đầu (thay thế cho volume cũ)
+
+# Thao tác trên console (ví dụ minh họa)
+- Tạo volume không mã hóa:
+    + Chọn dung lượng (vd: 1GB)
+    + Bỏ chọn "Enable Encryption"
+    + Kết quả: volume được tạo sẽ hiển thị trạng thái Not Encrypted
+- Tạo snapshot từ volume chưa mã hóa:
+    + Snapshot này cũng sẽ Not Encrypted 
+- Copy snapshot để bật encryption:
+    + Chọn snapshot vừa tạo -> Actions -> Copy Snapshot 
+    + Trong tùy chọn copy, bật Encryption 
+    + Chọn KMS key nếu cần 
+    + Kết quả: snapshot mới này Encrypted 
+- Tạo volume từ snapshot đã mã hóa:
+    + Actions -> Create Volume from Snapshot 
+    + Dung lượng mặc định theo snapshot (vd 1GB)
+    + Encryption: Enabled
+    + Kết quả: volume mới được tạo ra sẽ Encrypted 
+
+# Shortcut (cách nhanh hơn)
+- Thay vì làm đủ 3 bước, bạn có thể:
+    + Từ unencrypted snapshot -> Actions -> Create Volume from Snapshot 
+    + Trong quá trình tạo volume, bật tùy chọn Enable Encryption và chọn KMS key 
+    + Như vậy có thể tạo trực tiếp encrypted volume từ unencrypted snapshot
+
+# Quản lý dọn dẹp tài nguyên 
+- Khi đã hoàn thành việc thử nghiệm:
+    + Xóa snapshot cũ và mới 
+    + Xóa luôn các volumes vừa tạo để tránh tốn chi phí 
+

@@ -1,0 +1,89 @@
+        ### Mục tiêu bài học ###
+- Hiểu Amazon EFS (Elastic File System) là gì và nguyên lý hoạt động 
+- Biết tính năng, ưu điểm và hạn chế của EFS so với EBS 
+- Nắm rõ các chế độ hiệu năng (performance modes) và các chế độ thông lượng (throughput modes)
+- Hiểu các lớp lưu trữ (storage classes) và cách sử dụng lifecycle policies để tiết kiệm chi phí 
+- Phân biệt EFS Multi-AZ (Standard) và EFS One Zone, từ đó chọn đúng môi trường (production hay development)
+
+# Amazon EFS là gì?
+- EFS = Elastic Life System, một dịch vụ NFS (Network File System) được AWS quản lý 
+- Vì là network file system, EFS có thể: 
+    + Được mount cùng lúc trên nhiều EC2 instances
+    + Các EC2 này có thể thuộc nhiều AZ khác nhau trong cùng một region 
+-> Đây chính là sức mạnh của EFS: dễ dàng chia sẻ dữ liệu giữa nhiều máy chủ, với tính sẵn sàng (HA) và khả năng mở rộng (scalability) cao 
+
+# Đặc điểm và chi phí 
+- Rất sẵn sàng và cực kỳ scalable 
+- Tự động mở rộng dung lượng: không cần provision trước như EBS 
+- Trả tiền theo dung lượng sử dụng (pay per-use)
+- Tuy nhiên: Chi phí cao hơn -> khoảng gấp 3 lần so với gp2 EBS 
+
+# Mô hình hoạt động
+- Một EFS file system được bảo vệ bởi Security Group 
+- Nhiều EC2 instances (trong nhiều AZ: us-east-1a, 1b, 1c...) có thể kết nối đồng thời cùng 1 EFS 
+- Nội bộ sử dụng NFS protocol 
+- Kiểm soát truy cập thông qua Security Group 
+- LƯU Ý:
+    + EFS chỉ dùng được với Linux-based AMIS (do dùng chuẩn POSIX)
+    + Không tương thích với Windows 
+
+# Tính năng bảo mật 
+- Encryption at rest: bật được bằng KMS 
+- Hệ thống file theo chuẩn POSIX -> tương thích với API chuẩn của Linux 
+
+# Khả năng mở rộng 
+- Hỗ trợ ngàn client NFS đồng thời 
+- Thông lượng > 10GB/s
+- Có thể mở rộng đến petabyte scale một cách tự động 
+
+# Performance Modes (chế độ hiệu năng)
+Được chọn khi tạo EFS:
+- General Purpose (mặc định)
+    + Độ trễ thấp 
+    + Dùng cho web server, CMS, content management 
+- Max I/O
+    + Độ trễ cao hơn 
+    + Nhưng throughput cao hơn, hỗ trợ nhiều request song song 
+    + Dùng cho Big Data hoặc media processing 
+
+# Throughput Modes (chế độ thông lượng)
+Có 3 loại:
+1. Bursting Throughput
+- Tốc độ phụ thuộc vào dung lượng lưu trữ
+- Ví dụ: 1 TB lưu trữ = 50 MB/s baseline, có thể burst lên 100 MB/s
+2. Provisioned Throughput
+- Cho phép bạn cấu hình thông lượng tách biệt với dung lượng 
+- Ví dụ: 1TB lưu trữ nhưng bạn vẫn có thể set throughput = 1GB/s 
+3. Elastic Throughput
+- AWS tự động scale up/down thông lượng theo workload 
+- Ví dụ: 3GB/s cho reads, 1GB/s cho writes khi cần 
+- Rất phù hợp cho workload khó dự đoán 
+
+# Storage Classes (lớp lưu trữ)
+EFS hỗ trợ lifecycle management để tự động di chuyển dữ liệu giữa các tiers:
+1. Standard
+- Dữ liệu thường xuyên truy cập 
+2. EFS-IA (Infrequent Access)
+- Dữ liệu ít truy cập
+- Giá lưu trẻ rẻ hơn nhưng mất phí khi đọc lại 
+3. EFS archive
+- Dữ liệu hầu như không truy cập (chỉ vài lần/năm)
+- Rất rẻ để lưu trữ, nhưng truy cập lại có chi phí cao 
+-> Với lifecycle policies, bạn có thể định nghĩa: Sau 60 ngày không truy cập, file sẽ tự động chuyển từ EFS Standard -> EFS-IA 
+
+# Availability & Durability
+- EFS Standard (Multi-AZ)
+    + Dữ liệu được lưu ở nhiều AZ -> rất bền vững 
+    + Thích hợp cho production workloads
+- EFS One Zone  
+    + Dữ liệu chỉ trong 1 AZ -> rẻ hơn
+    + Phù hợp cho development & test environments
+    + Hỗ trợ luôn EFS-IA -> EFS One Zone-IA 
+-> Bằng cách chọn đúng loại EFS storage class, bạn có thể tiết kiệm đến 90% chi phí 
+
+# Usecase điển hình 
+- Content Management System (CMS)
+- Web serving 
+- Data sharing 
+- WordPress hosting 
+- Big Data / Media Processing (khi dùng Max I/O)

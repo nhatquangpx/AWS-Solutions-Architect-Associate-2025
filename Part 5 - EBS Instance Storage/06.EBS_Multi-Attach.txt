@@ -1,0 +1,31 @@
+        ### Mục tiêu bài học ###
+- Hiểu Multi-Attach feature của EBS volume là gì 
+- Biết điều kiện sử dụng và loại EBS volume nào hỗ trợ Multi-Attach 
+- Nắm được giới hạn và lưu ý quan trọng (ví dụ: chỉ trong cùng AZ, tối đa 16 instances)
+- Hiểu usecase thực tế: ứng dụng cluster, xử lý đồng thời nhiều luồng read/write 
+
+# Định nghĩa Multi-Attach
+- Multi-Attach cho phép gắn cùng một EBS volume vào nhiều EC2 instances trong cùng AZ 
+- Ví dụ: Bạn có nhiều EC2 instances trong us-east-1a, và bạn có một io2 volume đã bật Multi-Attach -> volume này có thể gắn đồng thời vào các EC2 đó 
+- LƯU Ý: Multi-Attach chỉ khả dụng cho io1 và io2 (Provisioned IOPS SSD)
+
+# Quyền truy cập khi Multi-Attach
+- Mỗi EC2 instance được gắn vào volume đều có quyền read và write đầy đủ 
+- Tức là nhiều instance có thể đọc/ghi cùng lúc vào volume này 
+
+# Usecase 
+- Muốn tăng độ khả dụng (high availability) cho ứng dụng theo mô hình clusterd Linux applications (ví dụ: Teradata)
+- Ứng dụng cần quản lí đồng bộ các hoạt động ghi đồng thời (concurrent write operations)
+-> LƯU Ý: Ứng dụng của bạn phải được thiết kế để xử lý concurrent writes
+
+# Các giới hạn và lưu ý quan trọng 
+1. Giới hạn AZ
+- Multi-Attach chỉ áp dụng trong cùng một AZ 
+- Không thể gắn volume từ AZ này sang AZ khác bằng Multi-Attach 
+2. Giới hạn số lượng EC2 instances 
+- Tối đa 16 EC2 instances có thể gắn cùng một volume 
+- Đây là con số rất quan trọng cho kỳ thi 
+3. File system yêu cầu 
+- Để dùng Multi-Attach, cần cluster-aware file system 
+- Tức là hệ thống file phải hỗ trợ hoạt động đồng bộ trên nhiều máy (khác với XFS hay EXT4 thông thường)
+
