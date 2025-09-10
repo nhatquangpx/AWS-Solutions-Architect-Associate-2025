@@ -1,0 +1,65 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm Scalability và High Availability
+- Phân biệt Vertical Scalability (mở rộng theo chiều dọc) và Horizontal Scalability (mở rộng theo chiều ngang/ Elasticity)
+- Nắm rõ ý nghĩa của High Availability, cách nó hoạt động trong môi trường AWS 
+- Áp dụng các kiến thức này vào các dịch vụ AWS như EC2, RDS, Auto Scaling Groups, Load Balancers 
+
+# Scalability là gì?
+- Khả năng để hệ thống chịu tải cao hơn bằng cách thích nghi 
+- Có 2 loại:
+    + Vertical Scalability (Scale Up/Down)
+    + Horizontal Scalability (Scale Out/In) - còn gọi là Elasticity
+
+# Vertical Scalability
+- Nghĩa là tăng kích thước instance 
+- Ví dụ:
+    + Trong call center:
+        . Nhân viên mới (junior operator) -> nhận được 5 cuộc gọi/phút 
+        . Nhân viên kỳ cựu (senior operator) -> nhận được 10 cuộc gọi/phút 
+        . Như vậy, bạn scale up nhân viên để có năng lực tốt hơn 
+    + Trong AWS:
+        . EC2 instance đang chạy trên t2.micro
+        . Scale up thành t2.large -> năng lực xử lý tăng lên 
+- Khi nào dùng Vertical Scaling?
+    + Khi hệ thống không phải distributed system (không phân tán)
+    + Ví dụ: CSDL như RDS, ElastiCache
+    + Thường có giới hạn phần cứng -> không thể scale vô hạn 
+- AWS hỗ trợ Vertical Scale từ rất nhỏ đến cực lớn:
+    + Nhỏ nhất: t2.nano (0.5 GB RAM, 1vCPU)
+    + Lớn nhất: u-12tb1.metal (12.3 TB RAM, 450 vCPUs)
+
+# Horizontal Scalability
+- Nghĩa là tăng số lượng instance 
+- Ví dụ:
+    + Trong call center:
+        . Một nhân viên bị quá tải 
+        . Thay vì nâng cấp nhân viên này, bạn thuê thêm nhiều nhân viên khác 
+        . Thêm 2, 3 hoặc 6 người -> tăng khả năng xử lý song song 
+    + Trong AWS:
+        . Thêm nhiều EC2 instance chạy cùng ứng dụng
+        . Đây là cách phổ biến với web app hoặc hệ thống hiện đại 
+- Thuật ngữ AWS:
+    + Scale Out: Tăng số lượng instance
+    + Scale In: giảm số lượng instance 
+    + Thường kết hợp với Auto Scaling Group (ASG) và Load Balancer (ELB)
+
+# High Availability
+- HA khác Scalability, nhưng thường đi kèm với Horizontal scaling 
+- Ý nghĩa: Hệ thống có thể sống sót khi một AZ hoặc datacenter bị mất 
+- Cách triển khai:
+    + Ứng dụng chạy trên ít nhất 2 AZ 
+    + Nếu một AZ bị sự cố -> AZ khác vẫn đảm bảo dịch vụ 
+- Ví dụ call center:
+    + Có 3 nhân viên ở tòa nhà New York
+    + Có 3 nhân viên khác ở tòa nhà San Francisco
+    + Nếu New York mất kết nối -> San Francisco vẫn tiếp tục nhận cuộc gọi 
+
+# High Availability: Active vs Passive 
+- Passive HA:
+    + Ví dụ: RDS Multi-AZ
+    + Có một instance chính (active), một instance dự phòng (standby)
+    + Khi AZ chính lỗi -> standby sẽ tự động thay thế 
+- Active HA:
+    + Ví dụ: Nhiều EC2 ở nhiều AZ hoạt động đồng thời 
+    + Các instance đều nhận request song song 
+ 
