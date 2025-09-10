@@ -1,0 +1,51 @@
+        ### Mục tiêu bài học ###
+- Hiểu sự khác nhau giữa Amazon EBS và Amazon EFS 
+- Nắm rõ các đặc điểm quan trọng của EBS volumes: phạm vi, cách mở rộng IOPS, snapshot, backup và hành vi khi EC2 bị terminate 
+- Hiểu cách hoạt động của EFS: khả năng multi-AZ, dùng cho nhiều EC2 cùng lúc, giá cả và usecase 
+- So sánh thêm với Instance Store để có cái nhìn tổng quan 
+
+# Amazon EBS Volumes
+- EBS gắn trực tiếp vào một EC2 instance tại một thời điểm 
+Ngoại lệ: Multi-Attach (chỉ hỗ trợ io1 và io2), nhưng chỉ cho những usecase đặc thù (ví dụ clustered application)
+- Phạm vi: EBS bị giới hạn ở cấp độ AZ 
+    + Ví dụ: 1 EBS volume ở AZ1 chỉ có thể attach vào EC2 trong AZ1 
+    + Không thể attach trực tiếp qua AZ khác 
+- Nếu muốn di chuyển EBS qua AZ:
+1. Tạo EBS snapshot
+2. Restore snapshot sang AZ khác -> tạo volume mới 
+
+# Hiệu năng EBS (IOPS)
+- gp2: IOPS tăng theo kích thước volume 
+- gp3, io1: IOPS có thể điều chỉnh độc lập với kích thước volume 
+-> Giúp linh hoạt hơn trong việc tối ưu chi phí và hiệu năng 
+
+# Backup và ảnh hưởng đến hiệu năng 
+- Khi tạo EBS backup: 
+    + Quá trình này sử dụng I/O của volume 
+    + Không nên backup khi ứng dụng đang tải cao -> có thể gây giảm hiệu năng 
+
+# Hành vi khi EC2 bị terminate 
+- Root EBS volume của EC2:
+    + Mặc định sẽ bị xóa khi EC2 terminate 
+    + Có thể tắt hành vi này nếu muốn giữ lại volume sau khi instance bị terminate 
+
+# Amazon EFS
+- Khác biệt chính:
+    + EBS = gắn cho 1 EC2 trong 1 AZ 
+    + EFS = có thể gắn cho hàng trăm EC2, nhiều AZ cùng một lúc (multi-AZ)
+- Ví dụ:
+    + Một EFS có nhiều mount targets ở các AZ khác nhau 
+    + Các EC2 từ nhiều AZ đều có thể truy cập cùng 1 hệ thống file
+    + Usecase: WordPress (nhiều EC2 cùng chia sẻ code/data)
+- LƯU Ý:
+    + Chỉ hoạt động với Linux (do dùng chuẩn POSIX)
+    + Không tương thích với Windows 
+
+# Giá cả: EBS vs EFS
+- EFS đắt hơn EBS
+- Tuy nhiên: EFS hỗ trợ storage tiers (Standard, Infrequent Access, Archive) -> có thể tiết kiệm chi phí khi kết hợp lifecycle policies
+
+# Instance Store 
+- Instance Store = ổ cứng vật lý gắn trực tiếp vào server EC2 
+- Ưu điểm: Hiệu năng rất cao 
+- Nhược điểm: Ephemeral (mất dữ liệu khi EC2 bị stop/terminate)
