@@ -1,0 +1,88 @@
+        ### Mục tiêu bài học ###
+- Hiểu Load Balancing (cân bằng tải) là gì và tại sao cần sử dụng nó 
+- Nắm được cách Elastic Load Balancer (ELB) hoạt động trong AWS 
+- Biết các lợi ích khi dùng ELB: single point of access, health checks, SSL termination, stickiness, high availability 
+- Hiểu rõ 4 loại Load Balancer được AWS quản lí: CLB, ALB, NLB, GWLB 
+- Nắm cách cấu hình bảo mật (security groups) giữa ELB và EC2 để tăng cường an toàn 
+
+# Load Balancing là gì?
+- Load balancer = một server hoặc tập hợp server có nhiệm vụ phân phối traffic từ người dùng đến nhiều backend (ví dụ EC2 instances)
+- Người dùng không cần biết đang kết nối với instance nào -> họ chỉ thấy một endpoint duy nhất, chính là Load Balacer 
+- Ví dụ:
+    + Có 3 EC2 instances được "đứng sau" một Elastic Load Balancer 
+    + 3 người dùng kết nối đến ELB:
+        . User 1 -> được phân đến instance A 
+        . U2 -> iB
+        . U3 -> iC 
+    + Nếu số lượng user tăng lên -> ELB sẽ tự động phân phối tải một cách cân bằng 
+
+# Tại sao cần dùng Load Balancer?
+- Một điểm truy cập duy nhất (Single Point of Access): tất cả user chỉ cần biết endpoint của ELB 
+- Tự động xử lý lỗi (Failure Handling):
+    + ELB có health checks -> chỉ gửi traffic đến EC2 instances khỏe mạnh 
+- SSL Termination:
+    + ELB có thể xử lý HTTPS traffic thay cho backend -> đơn giản hóa bảo mật 
+- Session Stickiness:
+    + Có thể dùng cookies để giữ session của user kết nối đến cùng một instance 
+- High Availability Across Zones:
+    + ELB hoạt động trên nhiều AZ -> tăng tính sẵn sàng 
+- Tách biệt Public và Private Traffic:
+    + Có thể tạo public ELB cho internet và internal ELB cho private network 
+
+# AWS Elastic Load Balancer (ELB) là gì?
+- ELB = dịch vụ Load Balancer được AWS quản lý hoàn toàn 
+- AWS chịu trách nhiệm nâng cấp, bảo trì, high availability
+- Người dùng chỉ cần cấu hình vài tùy chọn 
+-> So với việc tự cài load balancer (nguyên máy chủ riêng):
+    + ELB rẻ hơn
+    + Dễ mở rộng 
+    + Tích hợp sẵn với nhiều dịch vụ AWS 
+- ELB tích hợp với:
+    + EC2 instances
+    + Auto Scaling Groups (ASG)
+    + Amazon ECS 
+    + AWS Certificate Manager (SSL/TLS certs)
+    + CloudWatch (monitoring)
+    + Route 53
+    + AWS WAF (Web Application Firewall)
+    + Global Accelerator 
+    + Và nhiều dịch vụ khác 
+
+# Health Checks trong ELB 
+- Health check giúp ELB kiểm tra tình trạng EC2 instance 
+- Nếu instance không khỏe -> ELB sẽ ngừng gửi traffic đến nó 
+- Cách hoạt động:
+    + Định nghĩa protocol, port, endpoint
+        Ví dụ:
+        . Protocol: HTTP
+        . Port: 4567
+        . Path: /health
+    + Nếu EC2 trả về status 200 OK -> instance healthy 
+    + Nếu không trả về hoặc lỗi khác -> instance unhealthy -> bị loại khỏi danh sách phân tải
+
+# Các loại Load Balancer trong AWS 
+1. Classic Load Balancer (CLB - 2009)
+- Hỗ trợ: HTTP, HTTPS, TCP, SSL
+- Cũ (deprecated) -> AWS khuyến nghị không nên dùng nữa 
+2. Application Load Balancer (ALB - 2016)
+- Hỗ trợ: HTTP, HTTPS, WebSocket
+- Layer 7 (Application Layer)
+- Dùng cho web apps, Rest APIs, microrvices
+3. Network Load Balancer (NLB - 2017)
+- Hỗ trợ: TCP, TLS (SSL), UDP 
+- Layer 4 (Transport Layer)
+- Hiệu năng cực cao, phù hợp cho ứng dụng low latency, high throughput
+4. Gateway Load Balancer (GWLB - 2020)
+- Hoạt động ở Network Layer (Layer 3, IP Protocol)
+- Dùng cho các ứng dụng bảo mật chuyên dụng: firewall, intrusion detection system 
+-> Khuyến nghị: Dùng các Load Balancer thế hệ mới (ALB, NLB, GWLB) thay vì CLB 
+
+# Security trong Load Balancer 
+- Security Group của Load Balancer:
+    + Cho phép HTTP (80) / HTTPS (443) từ mọi nơi (0.0.0.0/0).
+- Security Group của EC2 Instances:
+    + Chỉ cho phép traffic đến từ Load Balancer, không phải từ internet trực tiếp.
+    + Cấu hình bằng cách tham chiếu Security Group của ELB thay vì IP.
+- Ý nghĩa:
+    + Người dùng chỉ có thể đi qua Load Balancer.
+    + EC2 instances phía sau được bảo vệ khỏi truy cập trực tiếp → tăng cường bảo mật
