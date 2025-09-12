@@ -1,0 +1,54 @@
+        ### Mục tiêu bài học ###
+- Hiểu Application Load Balancer (ALB) là gì và hoạt động ở Layer 7 (HTTP/HTTPS)
+- Nắm được các tính năng quan trọng của ALB như: routing thông minh (theo path, hostname, query string, headers), hỗ trợ HTTP/2, redirection HTTP -> HTTPS 
+- Biết cách ALB quản lý traffic thông qua Target Groups (EC2, ECS, Lambda, IP address)
+- Hiểu cơ chế Health Checks ở cấp target group và cách ALB xử lý request với nhiều ứng dụng/microservices 
+- Nắm vững khái niệm X-Forwarđe headers để truy xuất IP, port, protocol gốc của client 
+
+# ALB là gì?
+- Đây là loại Load Balancer thế hệ mới trong AWS, chỉ hoạt động ở Layer 7 (Application Layer) của mô hình OSI 
+- Vì ở Layer 7 nên ALB hiểu được HTTP/HTTPS traffic và có khả năng routing thông minh dựa vào nội dung của request (ví dụ: đường dẫn, hostname, query string...)
+
+# Các tính năng chính của ALB 
+- Hỗ trợ HTTP/2 và WebSockets: giúp kết nối nhanh hơn, giữ được kết nối lâu dài
+- Redirect: có thể tự động chuyển hướng từ HTTP -> HTTPS ngay tại ALB, đảm bảo an toàn 
+- Intelligent Routing: ALB có thể routing dựa trên nhiều tiêu chí: 
+    + Path-based: Ví dụ example.com/users -> target group A, example.com/posts -> target group B 
+    + Host-based: Ví dụ one.example.com -> target group A, other.example.com -> target group B 
+    + Query string/ Header-based: Ví dụ example.com/reserves?id=123&order=false -> target group C 
+
+# Target Groups trong ALB 
+- Target Group = tập hợp "backend targets" mà ALB gửi request đến 
+- Một ALB có thể gửi traffic đến nhiều target group 
+- Các loại target có thể là:
+    + EC2 instances (có thể quản lý bằng Auto Scaling Group)
+    + ECS tasks (containers) -> đây là usecase rất mạnh của ALB cho microservices
+    + AWS Lambda functions -> ALB có thể đứng trước serverless app 
+    + Private IP address -> cho phép routing traffic đến các server on-premises (trong data center của bạn)
+-> Health Checkss: Mỗi target group có health check để đảm bảo chỉ những instance/target "healthy" mới nhận traffic 
+
+# Ví dụ minh họa ALB 
+- Hãy tưởng tượng ta có một ALB public-facing:
+    + Route /user -> Target Group A (EC2 instances chạy ứng dụng user)
+    + Route /search -> Target Group B (EC2 instances chạy ứng dụng search)
+- Như vậy:
+    + Một ALB duy nhất có thể đứng trước nhiều ứng dụng/microrservices
+    + So sánh: Nếu dùng Classic Load Balancer (CLB) thì ta sẽ phải tạo một load balancer riêng cho từng ứng dụng, rất tốn kém và khó xử lý 
+
+# Routing nâng cao - Query String & Headers 
+Ví dụ:
+- ALB nhận request có query ?Platform=Mobile → route đến Target Group 1.
+- ALB nhận request có query ?Platform=Desktop → route đến Target Group 2.
+-> Điều này cho phép bạn phân biệt traffic theo loại client (mobile/desktop), rất linh hoạt.
+
+# Hostname cố định & X-Forwarded Headers 
+- Mỗi ALB sẽ có một hostname cố định (do AWS cấp)
+- Các server backend (EC2 instances) không thấy trực tiếp IP thật của client, mà chỉ thấy IP private của ALB 
+- Để biết IP, port, protocol thật của client -> AWS thêm thông tin vào HTTP headers:
+    + X-Forwarded-For -> IP gốc của client 
+    + X-Forwarded-Port -> Port mà client sử dụng 
+    + X-Forwarded-Proto -> Protocol gốc (HTTP hay HTTPS)
+- Ví dụ:
+    + Client IP 12.34.56.78 gửi request -> ALB nhận và terminate connection -> ALB tạo kết nối mới đến EC2 instance 
+    + EC2 chỉ thấy private IP của ALB, nhưng có thể xem headers để biết client gốc là 12.34.56.78 
+    
