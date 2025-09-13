@@ -1,0 +1,48 @@
+        ### Mục tiêu bài học ###
+- Hiểu Gateway Load Balancer là gì và khi nào sử dụng 
+- Nắm được cơ chế hoạt động: kiểm tra, phân tích và phân phối traffic qua các thiết bị/appliance mạng (firewall, IDS/IPS, DPI)
+- Biết GWLB hoạt động ở Layer 3 (Network Layer) với GENEVE protocol (port 6081)
+- Hiểu các loại target group mà GWLB hỗ trợ (EC2 instance ID hoặc private IP)
+- Biết ứng dụng thực tế và cách nhận diện GWLB trong câu hỏi thi AWS 
+
+# Gate Way Load Balancer là gì?
+- Đây là loại load balancer mới nhất của AWS 
+- Chức năng chính: triển khai, mở rộng và quan lý các thiết bị mạng của bên thứ ba (third-party network appliances) trong AWS
+- Các thiết bị/appliance này có thể là:
+    + Firewall
+    + Hệ thống IDS/IPS (Intrusion Detection & Prevention System)
+    + Deep Packet Inspection (DPI) để phân tích nội dung gói tin 
+    + Hoặc các giải pháp xử lý, chỉnh sửa payload ở mức mạng 
+-> GWLB giúp bạn buộc toàn bộ traffic đi qua hệ thống kiểm tra an ninh trước khi tới ứng dụng 
+
+# So sánh cách luồng traffic đi
+- Thông thường (không có GWLB): Người dùng -> ALB -> Ứng dụng 
+- Khi dùng GWLB: Người dùng -> GWLB -> Các appliance (firewall, IDS/IPS,...) -> GWLB -> Ứng dụng 
+-> Toàn bộ traffic được kiểm duyệt và xử lý trước khi tới ứng dụng
+-> Nếu traffic xấu (ví dụ: bị firewall chặn) -> appliance drop luôn 
+-> Nếu traffic hợp lệ -> được trả về GWLB và tiếp tục đi đến ứng dụng 
+
+# Cơ chế hoạt động của GWLB 
+- Hoạt động ở Layer 3 (Network Layer), xử lý trực tiếp IP packets
+- GWLB có hai vai trò cùng lúc:
+    + Transparent Network Gateway:
+        . Cổng ra/vào duy nhất cho toàn bộ traffic trong VPC 
+        . Mọi traffic đều bắt buộc đi qua GWLB 
+    + Load Balancer: 
+        . Phân phối traffic đến các thiết bị trong Target Group (ví dụ nhiều firewall EC2 instances)
+-> Với cơ chế này, traffic đi qua hoàn toàn minh bạch với ứng dụng, ứng dụng không hề biết rằng có GWLB đứng giữa 
+
+# Protocol sử dụng GWLB 
+- Tương tự các load balancer khác, GWLB cũng cần Target group
+- Target group có thể là:
+    + EC2 instances -> đăng ký bằng Instance ID 
+    + Private IP addresses -> đăng ký thủ công 
+        . Dùng khi bạn có thiết bị/appliance trong data center riêng (on-premises) muốn kết nối với AWS 
+
+# Điểm cần nhớ trong kỳ thi AWS 
+- Nếu đề yêu cầu:
+    + Toàn bộ traffic phải đi qua firewall, IDS/IPS, DPI
+    + Traffic cần được phân tích ở mức gói tin (packet level)
+    + Có nhắc đến GENEVE protocol, port 6081
+    -> Chọn Gateway Load Balancer 
+

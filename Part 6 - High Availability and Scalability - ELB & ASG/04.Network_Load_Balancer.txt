@@ -1,0 +1,47 @@
+        ### Mục tiêu bài học ###
+- Hiểu Network Load Balancer là gì và hoạt động ở Layer 4 (TCP/UDP)
+- Nắm được các đặc điểm chính: hiệu năng cực cao, độ trễ siêu thấp, hỗ trợ static IP/Elastic IP
+- Biết cách NLB định tuyến traffic đến các target groups (EC2, private IP, kết hợp với ALB)
+- Hiểu rõ usecases trong thực tế và trong kỳ thi AWS: khi nào chọn NLB thay vì ALB 
+- Nắm rõ cơ chế Health Checks của NLB và các protocol hỗ trợ (TCP, HTTP, HTTPS)
+
+# Network Load Balancer là gì?
+- Hoạt động ở Layer 4 (Transport Layer) của mô hình OSI 
+- Hỗ trợ xử lý TCP và UDP traffic 
+- So sánh nhanh:
+    + ALB -> Layer 7 -> HTTP/HTTPS 
+    + NLB -> Layer 4 -> TCP/UDP 
+-> Trong kỳ thi AWS nếu thấy câu hỏi có từ khóa TCP/UDP traffic hoặc static IP -> nghĩ ngay đến NLB 
+
+# Đặc điểm nổi bật của NLB 
+- Hiệu năng cực cao: xử lý hàng triều request mỗi giây 
+- Độ trễ siêu thấp (ultra-low latency)
+- Static IP per Availability Zone:
+    + Mỗi AZ gắn với một static IP 
+    + Có thể gán Elastic IP cho NLB 
+    + Điều này rất hữu ích khi ứng dụng cần expose qua một hoặc một vài địa chỉ IP cố định 
+-> Trong đề thi nếu bài toán yêu cầu ứng dụng chỉ được truy cập qua 1-3 địa chỉ IP cố định, thì câu trả lời đúng chính là NLB 
+
+# Cách hoạt động của NLB 
+- Tương tự ALB, NLB cũng sử dụng Target Groups 
+- Target Groups có thể là:
+    + EC2 instances: NLB gửi TCP/UDP traffic đến EC2 
+    + Private IP addresses (phải hardcoded và phải là private IP)
+        . Có thể là private IP của EC2 trong AWS 
+        . Hoặc private IP của server trong data center on-premises 
+    + Kết hợp NLB và ALB:
+        . NLB đứng trước ALB 
+        . NLB cung cấp Static IPs + hiệu năng cực cao 
+        . ALB đứng sau để xử lý HTTP rules, routing thông minh 
+-> Đây là một kiến trúc hợp lệ khi vừa muốn có static IP, vừa tận dụng khả năng routing Layer 7 
+
+# Health Checks trong NLB 
+- Các health check được định nghĩa ở cấp Target Group 
+- Hỗ trợ 3 loại protocol cho health check:
+    + TCP
+    + HTTP
+    + HTTPS 
+- Ví dụ:
+    + Nếu backend chỉ hỗ trợ TCP -> health check bằg TCP 
+    + Nếu backend là ứng dụng web -> health check bằng HTTP hoặc HTTPS 
+    
