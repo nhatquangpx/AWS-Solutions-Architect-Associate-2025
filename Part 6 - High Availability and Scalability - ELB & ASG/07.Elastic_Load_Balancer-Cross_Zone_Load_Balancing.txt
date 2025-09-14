@@ -1,0 +1,32 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm Cross-Zone Load Balancing và sự khác biệt giữa việc bật/tắt tính năng này 
+- Nắm rõ hành vi phân phối request khi có cân bằng tải chéo AZ và khi không có 
+- Biết trạng thái mặc định (enabled/disabled) của từng loại Load Balancer (ALB, NLB, GWLB, CLB) cùng chi phí đi kèm 
+- Hiểu cách bật/tắt Cross-Zone Load Balancing trong Console AWS 
+
+# Cross-Zone Load Balancing 
+- AWS có nhiều AZ 
+- Cross-Zone Load Balancing cho phép mỗi Load Balancer trong một AZ có thể phân phối request đến tất cả các instance nằm ở mọi AZ khác, thay vì chỉ trong AZ của chính nó 
+- Nhờ đó, traffic được phân bổ đều trên tất cả các instance backend, bất kể chúng thuộc AZ nào 
+
+# Ví dụ minh họa 
+- Trường hợp CÓ Cross-Zone Load Balancing 
+    + Ví dụ: 
+        . AZ1 có 2 EC2 Instances
+        . AZ2 có 8 EC2 instances 
+    + Client gửi request đến Load Balancer -> request được phân phối đều cho cả 10 instances 
+    + Kết quả: Mỗi instance nhận 10% traffic 
+-> Dù số lượng instance không cân bằng giữa các AZ, hệ thống vẫn đảm bảo traffic chia đều cho toàn bộ 
+- Trường hợp KHÔNG có Cross-Zone Load Balancing 
+    + Cùng ví dụ trên, client gửi 50% request đến AZ1 và 50% đến AZ2 
+    + Nhưng Load Balancer trong AZ1 chỉ phân phối cho instance trong AZ1 (2 instances) -> mỗi instance AZ1 nhận 25% traffic tổng 
+    + Load Balancer AZ2 phân phối cho 8 instances của AZ2 -> mỗi instance AZ2 nhận 6,25% traffic tổng 
+-> Các instance ở AZ1 bị quá tải hơn nhiều so với AZ2 
+
+# Mặc định và chi phí theo từng loại Load Balancer 
+| Load Balancer                       | Mặc định           | Chi phí khi bật cross-AZ | Ghi chú                               |
+| ----------------------------------- | ------------------ | ------------------------ | ------------------------------------- |
+| **ALB (Application Load Balancer)** | ON (mặc định bật)  | ❌ Không tính phí         | Có thể chỉnh OFF tại **Target Group** |
+| **NLB (Network Load Balancer)**     | OFF (mặc định tắt) | ✅ Tính phí inter-AZ      | Có thể bật trong **Attributes**       |
+| **GWLB (Gateway Load Balancer)**    | OFF (mặc định tắt) | ✅ Tính phí inter-AZ      | Tương tự NLB                          |
+| **CLB (Classic Load Balancer)**     | OFF (mặc định tắt) | ❌ Không tính phí         | Nhưng CLB đã lỗi thời, sắp bị loại bỏ |
