@@ -1,0 +1,48 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm Sticky Sessions (Session Affinity) và lý do cần dùng trong Elastic Load Balancer 
+- Nắm rõ cách thức hoạt động của sticky sessions thông qua cookies (application-based và duration-based)
+- Biết cách bật/tắt stickiness trên Target Group của Load Balancer, cũng như ưu-nhược điểm khi sử dụng 
+
+# Sticky sessions
+- Sticky sessions hay Session Affinity: đảm bảo một client khi gửi nhiều request đến Load Balancer sẽ luôn được điều hướng đến cùng một backend instance 
+- Ví dụ: 
+    + Có một ALB với 2 EC2 instances và 3 client 
+    + Client 1 -> request đầu tiên đến instance A -> Các request tiếp theo cũng sẽ đến instance A 
+    + Client 2 -> request đầu tiên đến instance B -> Các request sau cũng gắn chặt với instance B 
+-> Điều này khác với hành vi mặc định của ALB, vốn phân phối request đều đặn (round-robin) giữa các instance 
+
+# Tính năng hỗ trợ Sticky Sessions 
+- Classic Load Balancer 
+- Application Load Balancer
+- Network Load Balancer 
+
+# Cách hoạt động của Sticky Sessions 
+- Cơ chế: Cookie được gửi trong request từ client đến Load Balancer 
+- Cookie này có:
+    + Thông tin stickiness
+    + Thời gian hết hạn (expiration date)
+- Khi cookie hết hạn -> client có thể bị điều hướng sang instance khác 
+-> Usecase: đảm bảo người dùng duy trì kết nối với cùng một backend để không mất dữ liệu phiên (session data), ví dụ: trạng thái login, giỏ hàng 
+- Nhược điểm: Nếu một client "rất sticky" -> có thể gây mất cân bằng tải giữa các backend instance 
+
+# Các loại Cookie trong Sticky Sessions 
+- Có 2 loại chính:
+a. Application-based Cookie: 
+- Do application (target) tự sinh 
+- Có thể chứa các thông tin tùy chỉnh theo nhu cầu app 
+- Cookie name phải được định nghĩa riêng cho mỗi Target Group 
+- Không được dùng các tên đã dành riêng cho ELB:
+    + AWSALB
+    + AWSALBAPPOR
+    + AWSALBTG
+- Ngoài ra, ALB cũng có thể tự tạo cookie với tên AWSALBAPP 
+b. Duration-based Cookie
+- Do Load Balancer sinh ra 
+- Tên cookie:
+    + ALB: AWSALB 
+    + CLB: AWSELB
+- Có thời gian hết hạn dựa trên cấu hình duration
+- Duration có thể đặt từ 1 giây -> 7 giây 
+-> Điểm khác biệt:
+    + Application-based: do app kiểm soát, thời gian hết hạn có thể được tùy chỉnh bởi app 
+    + Duration-based: do Load Balancer kiểm soát, hết hạn dựa vào thời gian đặt sẵn 
