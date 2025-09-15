@@ -1,0 +1,87 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm SSL/TLS certificate, cơ chế mã hóa in-flight encrytion
+- Biết sự khác nhau giữa SSL và TLS, tại sao hiện nay vẫn thường gọi nhầm TLS là SSL
+- Hiểu vai trò của Certificate Authority (CA) và chứng chỉ công khai 
+- Nắm cách Load Balancer xử lý SSL/TLS (certificate termination)
+- Biết về AWS Certificate Manager (ACM) và cách quản lý certificate trong AWS 
+- Hiểu SNI (Server Name Indication) và tầm quan trọng khi dùng nhiều domain trên một Load Balancer 
+- Phân biệt khả năng hỗ trợ SSL certificate trên CLB, ALB, NLB 
+
+# SSL và TLS là gì?
+- SSL (Secure Sockets Layer): giao thức mã hóa truyền thống, giúp kết nối an toàn 
+- TLS (Transport Layer Security): phiên bản mới, an toàn và hiện đại hơn SSL
+- Thực tế hiện nay, TLS mới là chuẩn được dùng, nhưng mọi người vẫn hay nói nhầm là SSL vì ngắn gọn và quen thuộc 
+-> Hiểu đơn giản: SSL = tên cũ, TLS = phiên bản mới. Khi nghe "SSL certificate" thì gần như luôn là TLS 
+
+# SSL/TLS certificate là gì?
+- Là một tệp chứng chỉ số gắn vào Load Balancer
+- Nó giúp mã hóa traffic giữa client và Load Balancer -> gọi là in-flight encryption
+- Nhờ vậy, dữ liệu gửi đi trên mạng (ví dụ: password, credit card) không bị lộ 
+- Nếu có SSL -> trình duyệt hiển thị 🔒 (lock icon).
+- Nếu không có SSL -> hiện cảnh báo ❌ “Not secure”, khuyên không nhập thông tin nhạy cảm.
+
+# Ai cấp SSL certificate?
+- Các Certificate Authorities (CA), ví dụ:
+    + Comodo
+    + Symantec
+    + GoDaddy
+    + GlobalSign
+    + Digicert
+    + Let's Encrypt (miễn phí, rất phổ biến)
+-> Bạn có thể gắn public SSL certificate vào AWS Load Balancer để mã hóa kết nối giữa client và LB 
+
+# Vòng đời SSL certificate 
+- Có hạn sử dụng (expiration date)
+- Phải gia hạn (renew) đúng hạn, nếu không chứng chỉ hết hạn -> Website sẽ báo lỗi bảo mật, người dùng không truy cập được
+
+# SSL certificate trên Load Balancer
+- Quy trình kết nối:
+    1. Người dùng kết nối tới website qua HTTPS -> tới Load Balancer 
+    2. Load Balancer thực hiện SSL Termination:
+        + Giải mã dữ liệu bằng certificate
+        + Sau đó, traffic vào backend có thể đi bằng HTTP (không mã hóa) vì trong nội bộ VPC đã an toàn 
+- Load Balancer sẽ tải chứng chỉ X.509 (SSL/TLS server certificate) để thực hiện việc này 
+
+# Quản lý SSL certificate trong AWS 
+- Sử dụng ACM (AWS Certificate Manager)
+- ACM giúp:
+    + Tạo/Cấp phát certificate (ví dụ từ Let's Encrypt)
+    + Import certificate tự tạo nếu muốn 
+- Khi tạo HTTPS listener trên Load Balancer -> bắt buộc chỉ định 1 default certificate
+- Có thể gắn thêm nhiều certificate khác nếu dùng SNI (phần quan trọng kế tiếp)
+
+# SNI (Server Name Indication)
+- Vấn đề đặt ra: Một web server/Load Balancer muốn phục vụ nhiều website khác nhau (nhiều domain), mỗi domain có certificate riêng -> làm sao xử lý 
+- Giải pháp:
+    + SNI là một extension của TLS handshake 
+    + Khi client bắt đầu kết nối, nó gửi luôn hostname muốn truy cập (vd: www.mycorp.com)
+    + Server/Load Balancer dựa vào hostname này để chọn certificate tương ứng 
+-> Nhờ SNI, 1 Load Balancer có thể phục vụ nhiều domain, mỗi domain có SSL riêng 
+
+# Hỗ trợ SNI trên AWS:
+- Ứng dụng được:
+    + ALB 
+    + NLB
+    + CloudFront 
+- Không hỗ trợ: CLB vì quá cũ 
+-> Khi dùng nhiều SSL certificate trên 1 LB -> phải nghĩ ngay đến ALB, NLB, CloudFront
+
+# Ví dụ minh họa với ALB 
+- ALB có 2 target group:
+    + www.mycorp.com
+    + Domain1.example.com
+- ALB chứa 2 SSL certificate tương ứng:
+    + Cert cho www.mycorp.com
+    + Cert cho Domain1.example.com
+- Khi client gửi request:
+    + Nếu host = www.mycorp.com -> ALB chọn đúng cert mycorp.com -> mã hóa kết nối -> route về target group mycorp 
+    + Nếu host = Domain1.example.com -> ALB chọn cert example.com -> route về target group Domain1
+-> Nhờ SNI, một ALB có thể host nhiều website khác nhau một cách bảo mật 
+
+# So sánh khả năng hỗ trợ SSL certificate
+| Load Balancer        | Hỗ trợ SSL | Số lượng certificate  | Ghi chú                                 |
+| -------------------- | ---------- | --------------------- | --------------------------------------- |
+| **CLB (Classic)**    | ✅ Có       | Chỉ **1 certificate** | Nếu cần nhiều cert → phải tạo nhiều CLB |
+| **ALB (App LB)**     | ✅ Có       | Nhiều cert            | Dùng **SNI** để phân biệt hostname      |
+| **NLB (Network LB)** | ✅ Có       | Nhiều cert            | Dùng **SNI**                            |
+| **CloudFront**       | ✅ Có       | Nhiều cert            | Hỗ trợ SNI                              |
