@@ -1,0 +1,46 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm Connection Draining / Deregistration Delay trong AWS ELB 
+- Biết sự khác biệt tên gọi giữa CLassic Load Balancer và Appliction / Network Load Balancer
+- Nắm cơ chế hoạt động của Connection Draining: cách ELB xử lý request khi instance bị deregistered hoặc unhealthy 
+- Biết cách cấu hình thời gian chờ (draining period) và ảnh hưởng của nó với ứng dụng 
+- Phân tích ưu/nhược điểm khi đặt giá trị timeout cao hoặc thấp 
+
+# Connection Draining là gì?
+- Đây là một tính năng quan trọng, thường gặp trong kì thi AWS, dùng để đảm bảo người dùng không bị ngắt kết nối đột ngột khi một instance chuẩn bị bị loại khỏi load balancer 
+- Tên gọi khác nhau tùy loại Load Balancer:
+    + CLB -> gọi là Connection Draining
+    + ALB và NLB -> gọi là Deregistration Delay
+-> Dù tên khác nhau nhưng cơ chế hoạt động giống nhau 
+
+# Ý tưởng chính 
+- Khi một EC2 instance bị:  
+    + Deregistered (bạn xóa nó khỏi target group)
+    + Hoặc Unhealthy (bị health check đánh fail)
+    -> ELB sẽ không ngắt ngay lập tức các kết nối hiện tại trên instance đó 
+- Thay vào đó, ELB cho phép:
+    + Các kết nối đang hoạt động (in-flight requests) được tiếp tục xử lý trong một khoảng thời gian nhất định (draining period)
+    + Sau khi hết thời gian, mọi kết nối còn lại sẽ bị đóng 
+-> Điều này giúp tránh mất dữ liệu hoặc gián đoạn cho người dùng đang kết nối 
+
+# Ví dụ minh họa 
+- Giả sử có 3 EC2 Instances trong một load balancer: Instance A, B, C
+- Bạn đặt instance A vào trạng thái draining
+    + Các user đang kết nối tới instance A -> vẫn có thời gian để hoàn tất request (ví dụ tải file, gửi form, upload dữ liệu)
+    + Các user mới kết nối -> ELB sẽ không gửi về instance A nữa mà chỉ phân phối tới B và C 
+- Khi draining period kết thúc -> tất cả kết nối trên instance A sẽ đóng hẳn 
+
+# Cấu hình Connection Draining
+- Có thể thiết lập giá trị từ 1 -> 3600 giây
+- Mặc định = 300 giây (5 phút)
+- Nếu đặt =0 -> Connection Draining bị tắt, nghĩa là khi instance deregistered thì kết nối sẽ bị ngắt ngay lập tức 
+
+# Khi nào chọn giá trị cao hay thấp?
+- Đặt giá trị thấp (ví dụ 30 giây):
+    + Phù hợp khi request ngắn (<1s)
+    + Instance có thể được shutdown nhanh chóng (ví dụ trong trường hợp autoscaling thay thế)
+    + Nhưng nếu có request dài bất thường -> có thể bị ngắt giữa chừng 
+- Đặt giá trị cao (ví dụ vài phút):
+    + Hữu ích với long-lived connections (tải file lớn, upload video, streaming, API lâu)
+    + Đảm bảo user không bị ngắt kết nối đột n gian lâu mới thoát hẳn -> có thể ảnh hưởng tốc độ thay thế instance 
+-> Đây là một trade-off giữa user experience và tốc độ scale/replace instance 
+
