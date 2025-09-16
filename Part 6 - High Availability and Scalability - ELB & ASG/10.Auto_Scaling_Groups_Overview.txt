@@ -1,0 +1,64 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm Auto Scaling Group trong AWS 
+- Nắm được cách ASG scale out (mở rộng) và scale in (thu hẹp) EC2 instances 
+- Biết cách cấu hình số lượng tối thiểu, tối đa và mong muốn của ASG 
+- Hiểu sự kết hợp giữa ASG và Load Balancer để đảm bảo cân bằng tải và thay thế instance lỗi 
+- Biết các thành phần quan trọng: Launch Template, Scaling Policies, CloudWatch Alarms 
+
+# Khái niệm Auto Scaling Group:
+- Khi triển khai một website hoặc ứng dụng, tải (load) thay đổi theo thời gian vì lượng người dùng tăng/giảm 
+- AWS cho phép tạo hoặc hủy EC2 instance rất nhanh thông qua API 
+- Để tự động hóa quá trình này, ta dùng Auto Scaling Group 
+-> Chức năng chính của ASG:
+- Scale out -> thêm EC2 instances khi tải tăng 
+- Scale in -> giảm EC2 instances khi tải giảm 
+- Do đó kích thước ASG thay đổi theo thời gian 
+
+# Giới hạn số lượng trong ASG 
+- Có thể đặt tham số để đảm bảo ASG luôn nằm trong phạm vi an toàn:
+    + Min capacity -> số lượng instance tối thiểu 
+    + Desired capacity -> số lượng instance mong muốn (mức vận hành hiện tại)
+    + Max capacity -> số lượng instance tối đa 
+- Ví dụ:
+    + Min = 2
+    + Desired = 4
+    + Max =7
+    -> Khi tải tăng, ASG có thể mở rộng dần từ 4 -> 7 instance 
+
+# Sức mạnh khi kết hợp với Load Balancer 
+- Nếu ASG được liên kết với Elastic Load Balancer 
+    + Tất cả instance trong ASG sẽ tự động đăng ký với ELB
+    + ELB phân phối lưu lượng đến các instance 
+- Health check: ELB có thể kiểm tra tình trạng instance 
+    + Nếu instance lỗi -> báo cho ASG
+    + ASG sẽ terminate instance lỗi và tạo mới 
+
+# Các thành phần khi tạo ASG 
+- Cần một Launch Template (thay cho Launch Configuration đã bị deprecated)
+- Launch Template chứa các thông tin:
+    + AMI (Amazon Machine Image)
+    + Instance type 
+    + EC2 User Data (script khi khởi động)
+    + EBS volumes
+    + Security Groups
+    + SSH key pair
+    + IAM roles cho EC2
+    + Network & Subnet info
+    + Thông tin Load Balancer 
+-> Tất cả tương tự như khi bạn tạo một EC2 instance thủ công, nhưng được gom lại trong template 
+
+# Chính sách Scaling và CloudWatch Alarm
+- ASG có thể tự động scale in/out dựa trên CloudWatch Alarms 
+- Ví dụ:
+    + ASG đang có 3 EC2 Instances
+    + Nếu CPU trung bình quá cao -> CloudWatch kích hoạt -> scale out (thêm instance)
+    + Nếu CPU thấp -> có thể scale in 
+-> Chính sách:
+    + Scale out policy -> tăng số lượng Instance
+    + Scale in policy -> giảm số lượng instance 
+Đây chính là lý do gọi là Auto Scaling Group - tự động điều chỉnh dựa trên tín hiệu giám sát (alarm)
+
+# Chi phí 
+- ASG hoàn toàn miễn phí 
+- Chỉ tính phí cho tài nguyên mà ASG tạo ra, ví dụ: EC2 instances, EBS volumes, Load Balancer 
+
