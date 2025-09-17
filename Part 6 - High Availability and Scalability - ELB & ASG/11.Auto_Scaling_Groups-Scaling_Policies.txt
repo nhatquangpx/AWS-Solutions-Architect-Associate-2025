@@ -1,0 +1,68 @@
+        ### Mục tiêu bài học ###
+- Hiểu rõ các loại chính sách scaling (scaling policies) trong Auto Scaling Group
+- Nắm được các loại: Dynamic scaling, Scheduled scaling, Predictive scaling 
+- Biết cách chọn metric phù hợp để scale (CPU, RequestCountPerTarget, Network, Custom metrics)
+- Hiểu khái niệm Scaling Cooldown và lý do tồn tại 
+- Biết cách tối ưu scaling bằng AMI sẵn sàng và Detailed Monitoring 
+
+# Các loại Scaling Policies trong Auto Scaling Group 
+- AWS cung cấp nhiều chính sách nhau để chỉnh số lượng EC2 instances trong ASG 
+a. Dynamic Scaling (tự động, theo thời gian thực)
+- Bao gồm:
+    + Target Tracking Scaling
+        . Rất dễ thiết lập 
+        . Bạn chọn một metric (ví dụ: CPU utilization)
+        . Bạn đặt một giá trị mục tiêu (ví dụ: 40%)
+        . ASG sẽ tự động scale out hoặc scale in để giữ metric xung quanh 40% 
+    + Simple/Step Scaling 
+        . Dựa trên CloudWatch Alarms
+        . Ví dụ: Khi alarm kích hoạt -> thêm bớt số lượng instance cụ thể vào ASG 
+        . Step Scaling cho phép nhiều mức thay đổi (ví dụ: nếu CPU > 60% thì +1 instance, nếu CPU > 8-% thì +2 instance)
+b. Scheduled Scaling (lên lịch)
+- Dùng khi bạn biết trước mô hình tải 
+- Ví dụ: Bạn biết rằng mỗi 5 giờ chiều thứ Sáu sẽ có nhiều user mới 
+- Bạn có thể đặt lịch tăng min capacity lên 10 vào thời điểm đó 
+c. Predictive Scaling (dự đoán trước)
+- ASG sẽ liên tục phân tích dữ liệu lịch sử để dự báo tải trong tương lai 
+- Tự động tạo forecast và đặt lịch scale dựa trên forecast 
+- Phù hợp với ứng dụng có mẫu hành vi lặp lại (cyclical pattern)
+
+# Lựa chọn Metric để Scale 
+- Việc chọn metric phụ thuộc vào ứng dụng của bạn. Một số metric phổ biến:
+1. CPU Utilization:
+- Hầu hết ứng dụng đều tiêu tốn CPU khi xử lý request 
+- Nếu CPU trung bình cao -> scale out để giảm tải 
+2. RequestCountPerTarget (gắn với Application Load Balancer - ALB)
+- Ví dụ: Một EC2 hoạt động tốt nhất ở mức 1000 request/instance 
+- Bạn có thể scale dựa trên số request trung bình trên mỗi target 
+- Ví dụ minh họa:
+    + ASG có 3 EC2 Instances
+    + ALB phân bổ request, mỗi instance trung bình xử lý 3 request 
+    + Metric RequestCountPerTarget = 3
+3. Network In/Out 
+- Nếu ứng dụng của bạn phụ thuộc nhiều vào upload/download (network-bound)
+- Có thể scale dựa trên ngưỡng băng thông mạng 
+4. Custom Metrics 
+- Bạn có thể đẩy metric riêng lên CloudWatch 
+- Ví dụ: Thời gian phản hồi trung bình của API, số lượng kết nối database 
+- Tùy vào đặc thù ứng dụng để scale chính xác hơn 
+
+# Scaling Cooldown (thời gian chờ)
+- Sau khi có một hành động scaling (thêm hoặc bớt instance), ASG sẽ vào giai đoạn cooldown 
+- Mặc định: 300 giây (5 phút)
+- Trong thời gian cooldown, ASG sẽ không thực hiện thêm hành động scale nào 
+-> Lý do:
+    + Để hệ thống ổn định metric sau khi thêm/bớt instance 
+    + Cho phép instance mới khởi chạy và bắt đầu phục vụ request 
+-> Cơ chế hoạt động:
+    + Nếu có scaling action xảy ra -> kiểm tra cooldown 
+    + Nếu cooldown đang chạy -> bỏ qua scaling mới 
+    + Nếu cooldown kết thúc -> thực hiện scaling 
+
+# Tối ưu cho Scaling 
+- Dùng AMI sẵn sàng (pre-baked AMI)
+    + Nếu EC2 không cần nhiều thời gian cấu hình khi khởi chạy, nó sẽ sẵn sàng nhanh hơn 
+    + Giúp cooldown có thể rút ngắn, scaling nhanh nhạy hơn 
+- Enable Detailed Monitoring (1-minute metric)
+    + Cho phép CloudWatch cập nhật metric mỗi phút thay vì 5 phút 
+    + Giúp scaling phản ứng nhanh hơn với thay đổi tải 
