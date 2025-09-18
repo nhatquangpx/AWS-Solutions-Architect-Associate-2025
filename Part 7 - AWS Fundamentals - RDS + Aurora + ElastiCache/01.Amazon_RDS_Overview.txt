@@ -1,0 +1,57 @@
+        ### Mục tiêu bài học ### 
+- Hiểu AWS RDS (Relational Database Service) là gì và đặc điểm chính 
+- Nắm được các loại database engine mà RDS hỗ trợ 
+- So sánh RDS với việc tự cài database trên EC2 để thấy lợi ích của dịch vụ managed 
+- Hiểu rõ tính năng RDS Storage Scaling và cơ chế hoạt động của nó 
+
+# AWS RDS là gì?
+- Đây là dịch vụ database có quản lý (managed database) của AWS 
+- Dùng cho các hệ quản trị csdl dựa trên SQL 
+- SQL là ngôn ngữ truy vấn csdl, đã được chuẩn hóa và dùng rộng rãi trên nhiều hệ thống 
+-> Với RDS, bạn có thể tạo database trên cloud, và AWS sẽ quản lý, vận hành, tối ưu cho bạn, thay vì bạn phải tự làm mọi thứ 
+
+# Các loại Database Engine được RDS hỗ trợ 
+- AWS RDS hiện quản lý nhiều engine phổ biến:
+    + PostgreSQL
+    + MySQL
+    + MariaDB
+    + Oracle 
+    + Microsoft SQL Server
+    + IBM DB2
+    + Amazon Aurora (database riêng của AWS, sẽ học chi tiết sau)
+-> ĐÂY LÀ DANH SÁCH ENGINE CÓ TRONG ĐỀ THI CẦN HỌC THUỘC 
+
+# Vì sao dùng RDS thay vì cài database trên EC2?
+- Bạn hoàn toàn có thể cài database trên EC2, nhưng RDS mang lại lợi ích lớn vì là managed service 
+- AWS quản lý thêm nhiều tính năng:
+    + Provisioning tự động: tạo database nhanh chóng 
+    + OS patching tự động: hệ điều hành của DB được update an toàn 
+    + Continuous backups + Point in Time Restore: backup liên tục, có thể khôi phục về thời điểm bất kỳ 
+    + Monitoring dashboards: theo dõi hiệu năng DB 
+    + Read replicas: cải thiện hiệu năng đọc 
+    + Multi-AZ deployment: đảm bảo tính khả dụng cao và disaster recovery
+    + Maintenance windows: lên lịch nâng cấp 
+    + Scaling: 
+        . Vertical scaling: tăng sức mạnh instance (thay đổi instance type)
+        . Horizontal scaling: thêm read replicas 
+    + Storage trên EBS: ổn định, bền bỉ 
+- Điểm hạn chế: Không thế SSH trực tiếp vào RDS instance (vì AWS quản lý toàn bộ hạ tầng)
+-> Bù lại, ta không phải mất công tự cấu hình như trên EC2 
+
+# Tính năng RDS Storage Auto Scaling 
+- Đây là một điểm hay và dễ thi:
+    + Khi tạo RDS DB, bạn phải chọn dung lượng lưu trữ (vd: 200GB)
+    + Nếu workload tăng -> sắp hết dung lượng
+    + Thay vì bạn phải tạm dừng DB để tăng storage, thì với Storage Auto Scaling, AWS sẽ tự động tăng dung lượng
+- Cách hoạt động:
+    + Bạn đặt mức dung lượng tối đa (maximum storage threshold)
+    + Khi RDS thấy:
+        1. Free storage < 10% dung lượng cấp phát
+        2. Tình trạng thiếu này kéo dài > 5 phút
+        3. Đã qua ít nhất 6 giờ kể từ lần tăng storage gần nhất
+    -> RDS sẽ tự động tăng Storage cho DB 
+- Lợi ích:
+    + Tránh downtime khi phải scale thủ công
+    + Phù hợp cho ứng dụng có workload khó dự đoán
+    + Hỗ trợ tất cả database engine tron RDS
+    
