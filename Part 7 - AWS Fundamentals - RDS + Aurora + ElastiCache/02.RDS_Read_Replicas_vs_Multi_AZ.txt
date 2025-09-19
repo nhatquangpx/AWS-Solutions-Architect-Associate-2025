@@ -1,0 +1,66 @@
+        ### Mục tiêu bài học ###
+- Hiểu rõ sự khác biệt giữa RDS Read Replicas và Multi-AZ Deployment 
+- Nắm được usecase cho từng tính năng: khi nào dùng Read Replica, khi nào dùng Multi-AZ
+- Biết các đặc điểm quan trọng như asynchronous replication và synchronous replication
+- Hiểu chi phí liên quan khi sử dụng Read Replica (cross-AZ và cross-region)
+- Biết cách chuyển một database từ Single-AZ sang Multi-AZ mà không downtime 
+
+# Khái niệm tổng quan
+- Read Replica -> để scale đọc (scaling reads)
+- Multi-AZ -> để tăng tính sẵn sàng (high availability / disaster recovery)
+
+# RDS Read Replicas
+1. Định nghĩa
+- Read Replica (bản sao chỉ đọc) giúp tăng khả năng đọc dữ liệu của RDS 
+- Cho phép chia tải đọc từ database chính sang các bản sao
+2. Cách hoạt động
+- Ứng dụng của bạn có một RDS DB instance chính (master) nhận cả read và write 
+- Khi lượng read quá tải, bạn tạo thêm Read Replica (tối đa 15 bản)
+- Các Replica này có thể đặt ở:
+    + Cùng AZ 
+    + Khác AZ 
+    + Khác Region 
+3. Cơ chế replication
+- Replication từ master sang Replica là asynchronous (bất đồng bộ)
+- Điều này có nghĩa là dữ liệu chỉ eventually consistent (cuối cùng cũng đồng bộ)
+- Ví dụ: Nếu ứng dụng đọc dữ liệu từ Replica ngay sau khi ghi ở master, có thể Replica chưa kịp cập nhật -> đọc ra dữ liệu cũ 
+4. Khả năng nâng cấp
+- Một Replica có thể được promote thành một database độc lập 
+- Khi promote xong -> nó không còn tham gia replication, sống độc lập và nhận read/write như DB bình thường
+5. Ứng dụng
+- Ứng dụng chính (production) dùng DB master để read/write
+- Team báo cáo cần chạy query phân tích 
+- Nếu gắn trực tiếp reporting vào master -> DB chính bị quá tải
+- Giải pháp: tạo Read Replica, cho team báo cáo chạy query SELECT ở Replica -> production không bị ảnh hưởng 
+-> LƯU Ý: Replica chỉ phục vụ cho SELECT. Không chạy được INSERT, UPDATE, DELETE (các câu lệnh thay đổi dữ liệu)
+6. Chi phí mạng (Networking cost)
+- Bình thường, traffic cross-AZ sẽ bị tính phí
+- Nhưng RDS là managed service -> replication cross-AZ trong cùng region thì miễn phí 
+- Ví dụ: master ở us-east-1a, Replica ở us-east-1b -> free 
+- Nếu crosss-region -> replication traffic có phí 
+
+# RDS Multi-AZ Deployment 
+1. Định nghĩa
+- Multi-AZ chủ yếu để Disaster Recovery (khả năng chịu lỗi), không phải để scale đọc
+2. Cách hoạt động
+- Bạn có một master DB ở AZ A 
+- AWS tự động tạo một standby DB ở AZ B 
+- Dữ liệu được replicate từ master sang standby theo cơ chế synchronous replication. Nghĩa là ghi vào master chỉ thành công khi standby cũng đã ghi nhận 
+3. Failover
+- Ứng dụng chỉ cần dùng 1 DNS endpoint
+- Nếu master gặp sự cố (mất AZ, hỏng storage, network failure, crash instance), AWS sẽ tự động failover sang standby 
+- Ứng dụng sẽ tự động kết nối sang standby B, không cần chỉnh tay 
+-> Multi-AZ không tăng performance vì standby không thể đọc/ghi. Nó chỉ chờ Failover
+4. Kết hợp Read Replica và Multi-AZ 
+- AWS cho phép bạn tạo một Read Replica nhưng đồng thời Replica đó cũng có thể được cấu hình Multi-AZ để tăng độ bền dữ liệu 
+- Đây là câu hỏi hay gặp trong kỳ thi 
+5. Chuyển từ Single-AZ sang Multi-AZ 
+- AWS cho phép chuyển đổi mà không downtime
+- Cách làm:
+    1. Vào console -> Modify DB -> bật Multi-AZ
+    2. Nội bộ AWS sẽ:
+        + Tự động tạo snapshot DB chính
+        + Restore snapshot thành standby DB
+        + Thiết lập replication synchronous
+    3. Sau đó bạn sẽ có Multi-AZ setup
+-> Tất cả diễn ra mà database vẫn hoạt động bình thường
