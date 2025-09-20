@@ -1,0 +1,52 @@
+        ### Mục tiêu bài học ###
+- Hiểu được sự khác biệt giữa Amazon RDS và Amazon RDS Custom 
+- Nắm rõ các database engine nào được hỗ trợ với RDS Custom 
+- Biết được lợi ích khi dùng RDS Custom: toàn quyền tùy chỉnh hệ điều hành và database
+- Nắm quy trình làm việc an toàn khi sử dụng RDS Custom (deactivate automation, snapshot trước khi chỉnh sửa)
+
+# RDS thông thường 
+- Với Amazon RDS (Relational Database Service), AWS quản lý toàn bộ cho bạn:
+    + Cài đặt database (setup)
+    + Vận hành tự động (operations)
+    + Tự động backup, maintainance, scaling 
+    + Bạn không có quyền truy cập hệ điều hành (OS) nằm dưới database 
+- Như vậy, bạn chỉ tập trung vào sử dụng database, còn AWS lo toàn bộ việc quản lý hạ tầng 
+
+# RDS Custom 
+- Amazon RDS Custom là một tùy chọn đặc biệt, chỉ áp dụng cho Oracle và Microsoft SQL Server 
+- Với RDS Custom, bạn vẫn hưởng lợi từ:
+    + Automation (tự động cài đặt, scaling, backup, monitoring của RDS)
+- Nhưng điểm đặc biệt là:
+    + Bạn có quyền truy cập vào Operating System (OS) và database engine bên dưới 
+    + Có thể customize hệ thống theo nhu cầu đặc thù của ứng dụng/doanh nghiệp
+
+# Những gì có thể làm với RDS Custom 
+- Truy cập hệ điều hành và database:
+    + Bạn có thể SSH trực tiếp vào EC2 instance đứng sau RDS Custom 
+    + Hoặc dùng AWS Systems Manager Session Manager để kết nối 
+- Tùy chỉnh:
+    + Thay đổi cấu hình nội bộ 
+    + Cài đặt patches thủ công 
+    + Kích hoạt tính năng native vốn bị giới hạn ở RDS thông thường 
+- Ví dụ: tinh chỉnh tham số của SQL Server/Oracle, cài thêm phần mềm phụ trợ, can thiệp sâu vào config hệ điều hành 
+
+# Lưu ý khi sử dụng RDS Custom 
+- Vì bạn có quyền "root-level", khả năng làm hỏng hệ thống cũng cao hơn 
+- Do đó, AWS khuyến nghị:
+    1. Deactivate Automation Mode:
+        + Nghĩa là tạm thời tắt các tác vụ tự động của RDS (scaling, patching, maintainance)
+        + Tránh trường hợp bạn đang tùy chỉnh thì RDS tự động thay đổi, gây xung đột
+    2. Snapshot trước khi chỉnh sửa:
+        + Vì bạn có thể vô tình phá vỡ hệ thống, nên cần có snapshot để khôi phục lại 
+    
+# So sánh RDS và RDS Custom 
+| Tiêu chí               | RDS (thông thường)                                                    | RDS Custom                      |
+| ---------------------- | --------------------------------------------------------------------- | ------------------------------- |
+| **Quyền quản lý OS**   | Không                                                                 | Có toàn quyền                   |
+| **Tự động hóa**        | Toàn bộ (AWS lo hết)                                                  | Có, nhưng có thể tạm dừng       |
+| **Database hỗ trợ**    | Nhiều engine (MySQL, PostgreSQL, MariaDB, Oracle, SQL Server, Aurora) | Chỉ **Oracle** & **SQL Server** |
+| **Tùy chỉnh database** | Không                                                                 | Có thể tùy chỉnh sâu            |
+| **Truy cập instance**  | Không                                                                 | Có (SSH/SSM)                    |
+=> Tóm lại
+- RDS: dành cho ai muốn quản lý đơn giản, ít rủi ro, không cần can thiệp sâu.
+- RDS Custom: dành cho ai cần quyền kiểm soát cao, phải chạy các ứng dụng legacy hoặc enterprise cần custom sâu Oracle/SQL Server.
