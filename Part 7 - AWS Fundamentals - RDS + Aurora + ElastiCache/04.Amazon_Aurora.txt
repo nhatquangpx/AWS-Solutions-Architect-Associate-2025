@@ -1,0 +1,69 @@
+        ### Mục tiêu bài học ###
+- Hiểu Aurora là gì, đặc điểm so với RDS truyền thống 
+- Nắm được tính năng nổi bật của Aurora: hiệu năng, tự động mở rộng storage, replication, high availability
+- Biết cách hoạt động của Aurora cluster: master, read replicas, writer endpoint, reader endpoint 
+- Nắm các tính năng quản trị quan trọng như auto scaling, automatic failover, backtrack 
+
+# Tổng quan về Aurora
+- Amazon Aurora là công nghệ proprietary (sở hữu độc quyền) của AWS 
+- Không open-source, nhưng được thiết kế để tương thích với MySQL và PostgreSQL 
+    + Tức là bạn có thể sử dụng driver MySQL/Postgres để kết nối Aurora mà không cần thay đổi nhiều 
+- Hiệu năng vượt trội:
+    + Nhanh gấp 5 lần MySQL trên RDS 
+    + Nhanh gấp 3 lần PostgreSQL trên RDS 
+- Aurora được cloud-optimized: tận dụng hạ tầng AWS để tối ưu tốc độ và tính sẵn sàng 
+
+# Aurora Storage 
+- Tự động mở rộng dung lượng:
+    + Bắt đầu từ 10 GB, có thể mở rộng tới 128 TB mà không cần can thiệp thủ công 
+    + Quản trị viên không cần lo lắng về việc hết dung lượng 
+- Storage có khả năng:
+    + Replication tự động 
+    + Self-healing (tự chữa lỗi khi phát hiện dữ liệu hỏng)
+    + Phân tán trên hàng trăm volume -> giảm rủi ro mất dữ liệu 
+
+# High Availability và Read Scaling 
+- Aurora lưu trữ 6 copies của dữ liệu trên 3 AZ:
+    + Cần 4/6 copies để ghi -> đảm bảo tính khả dụng khi 1 AZ bị lỗi 
+    + Cần 3/6 copies để đọc -> luôn sẵn sàng cho truy vấn 
+- Failover cực nhanh:
+    + Khi master hỏng, Aurora failover trong <30 giây
+- Có thể tạo tối đa 15 read replicas
+    + Replica lag thường <10ms -> gần như real-time
+    + Các read replicas này cũng có thể promote thành master khi cần 
+- Hỗ trợ cross-region replication cho HA và DR toàn cầu 
+
+# Kiến trúc Aurora Cluster 
+- Aurora hoạt động theo cơ chế cluster:
+    + Master instance (writer): chỉ có 1 master chịu trách nhiệm ghi dữ liệu 
+    + Read replicas: tối đa 15, phục vụ cho đọc dữ liệu 
+    + Failover: nếu master chết, 1 replica sẽ được promote thành master trong vòng 30 giây 
+- Kết nối trong Aurora:
+    + Writer endpoint:
+        . Luôn trỏ tới master hiện tại
+        . Nếu failover xảy ra, client không cần đổi config -> endpoint tự động cập nhật 
+    + Reader endpoint:
+        . Trỏ tới tất cả read replicas
+        . Có load balancing ở mức kết nối (connection-level)
+        . Giúp ứng dụng tự động phân tán request đọc mà không cần theo dõi từng replica 
+
+# Các tính năng nổi bật khác
+- Auto scaling read replicas: Aurora có thể tự động scale số lượng replica (1 -> 15)
+- Automatic failover: Failover gần như tức thời, nhanh hơn Multi-AZ RDS 
+- Backup & Recovery: Tích hợp sẵn, không downtime 
+- Patching tự động: Zero downtime khi update 
+- Monitoring & compliance: Có sẵn advanced monitoring, đáp ứng chuẩn bảo mật doanh nghiệp 
+- Aurora Backtrack: 
+    + Cho phép khôi phục dữ liệu vê một thời điểm cụ thể mà không cần backup
+    + Ví dụ: có thể quay lại lúc 4:00 PM hôm qua, hoặc đổi sang 5:00 PM hôm qua linh hoạt 
+
+# So sánh Aurora với RDS 
+| Tiêu chí          | Aurora                                   | RDS (MySQL/Postgres)           |
+| ----------------- | ---------------------------------------- | ------------------------------ |
+| Hiệu năng         | 5x MySQL, 3x Postgres                    | Chuẩn                          |
+| Storage           | Auto-expand (10GB → 128TB)               | Cần định trước dung lượng      |
+| Replication       | Tối đa 15 replicas, lag <10ms            | Tối đa 5 replicas, lag cao hơn |
+| High Availability | 6 copies trên 3 AZ, self-healing         | Multi-AZ (2 copies)            |
+| Failover          | <30 giây                                 | Thường chậm hơn                |
+| Endpoint          | Writer & Reader endpoint tự động         | Thường phải cấu hình thủ công  |
+| Giá thành         | \~20% cao hơn, nhưng tối ưu ở quy mô lớn | Rẻ hơn nhưng ít tối ưu         |
