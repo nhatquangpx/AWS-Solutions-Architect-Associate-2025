@@ -1,0 +1,73 @@
+        ### Mục tiêu bài học ###
+- Hiểu Replica Auto-Scaling (tự động mở rộng read replicas)
+- Nắm được Custom Endpoints và lý do sử dụng
+- Biết cách hoạt động của Aurora Serverless
+- Hiểu về Aurora Global Database và lợi ích cho DR (disaster recovery) và giảm độ trễ toàn cầu 
+- Tìm hiểu tích hợp Aurora với dịch vụ Machine Learning (SageMaker, Comprehend)
+- Nắm rõ Babelfish for Aurora PostgreSQL để dễ dàng di chuyển từ SQL Server 
+
+# Replica Auto-Scaling (tự động mở rộng read replicas)
+- Aurora cho phép tự động thêm read replicas khi có quá nhiều request đọc 
+- Ví dụ:
+        + Hệ thống có 1 instance writer (qua writer endpoint) và 2 instance reader (qua reader endpoint)
+        + Nếu workload tăng mạnh, CPU của reader quá tải -> Aurora sẽ tự động thêm replicas 
+        + Reader endpoint sẽ mở rộng để phân phối kết nối đến các replicas mới -> giảm tải CPU 
+-> Kết quả: workload đọc được phân tán tốt hơn, hiệu năng ổn định 
+
+# Custom Endpoints (Tùy chỉnh endpoint)
+- Dùng khi có nhiều loại instance khác nhau. Ví dụ:
+        + Một số replicas là db.r3.large (nhỏ)
+        + Một số replicas là db.r5.2xlarge (mạnh)
+- Với custom endpoint, bạn có thể:
+        + Gom nhóm các instance mạnh -> chỉ dùng cho truy vấn phân tích nặng 
+        + Gom nhóm riêng cho workload khác 
+-> Điều này cho phép tối ưu hiệu năng bằng cách gán đúng loại truy vấn cho nhóm instance 
+
+# Aurora Serverless 
+- Tự động khởi tạo và mở rộng database instance dựa trên nhu cầu thực tế 
+- Phù hợp cho workload: 
+        + Không thường xuyên 
+        + Ngắt quãng
+        + Không đoán trước được tải 
+- Cơ chế hoạt động:
+        + Client gửi request đến một proxy fleet (Aurora quản lý)
+        + Proxy fleet sẽ tạo ra nhiều instances serverless theo nhu cầu thực tế 
+- Thanh toán:
+        + Tính toán giây sử dụng thực tế, không cần đặt trước dung lượng 
+-> Tiết kiệm chi phí và loại bỏ công việc capacity planning 
+
+# Aurora Global Database 
+- Cho phép cross-region replication cực nhanh, phục vụ:
+        1. Disaster Recovery (khôi phục khi region chính gặp sự cố)
+        2. Giảm latency đọc toàn cầu 
+- Đặc điểm:
+        + 1 primary region: tất cả reads/writes 
+        + Tối đa 10 secondary regions: chỉ đọc, replication lag < 1 giây 
+        + Mỗi region phụ có tối đa 16 replicas 
+- Failover:
+        + Có thể promote region phụ thành read/write
+        + RTO < 1 phút (khôi phục cực nhanh)
+-> Tóm lại: Aurora Global giúp ứng dụng toàn cầu vừa nhanh vừa an toàn 
+
+# Aurora Machine Learning
+- Tích hợp trực tiếp Aurora với dịch vụ ML của AWS:
+        + SageMaker: dùng mọi loại ML model 
+        + Comprehend: phân tích ngôn ngữ tự nhiên, ví dụ sentiment analysis
+- Cách hoạt động:
+        + Ứng dụng chạy SQL query (ví dụ: gợi ý sản phẩm)
+        + Aurora gửi dữ liệu (profile, lịch sử mua sắm) đến dịch vụ ML 
+        + Dịch vụ ML trả kết quả (ví dụ: "áo đỏ + quần xanh")
+        + Aurora trả về ứng dụng như kêt quả SQL 
+-> Không cần kiến thức ML sâu, nhưng có thể làm fraud detection, ads targeting, product recommendation trực tiếp từ Aurora 
+
+# Babelfish for Aurora PostgreSQL 
+- Giúp Aurora PostgreSQL hiểu lệnh T-SQL (SQL Server)
+- Trường hợp sử dụng:
+        + Doanh nghiệp đang dùng SQL Server (ứng dụng viết bằng T-SQL)
+        + Muốn chuyển sang Aurora PostgreSQL để tận dụng tính năng cloud-native
+- Thay vì viết lại ứng dụng:
+        + Babelfish dịch T-SQL -> PostgreSQL 
+        + Ứng dụng vẫn dùng SQL Server Driver như cũ 
+        + Hầu như không cần chỉnh sửa code 
+- Khi cần migrate thực tế: kết hợp với AWS SCT + DMS 
+-> Babelfish làm cho quá trình di cư từ SQL Server sang Aurora PostgreSQL cực kỳ dễ dàng 
