@@ -1,0 +1,52 @@
+        ### Mục tiêu bài học ###
+- Hiểu cách mã hóa dữ liệu at-rest (khi lưu trữ) và in-flight(khi truyền tải) trong RDS và Aurora
+- Nắm rõ các cơ chế xác thực kết nối: username/password và IAM roles
+- Biết cách kiểm soát truy cập mạng bằng Security Groups 
+- Hiểu sự khác biệt về quyền truy cập hệ thống (không có SSH, trừ RDS Custom)
+- Nắm quy trình Audit Logs và cách lưu trữ lâu dài với CloudWatch Logs 
+
+# Mã hóa dữ liệu at-rest 
+- Dữ liệu được mã hóa trên volumes của RDS/Aurora 
+- Khi bạn bật mã hóa, database chính (master) và replica sẽ được mã hóa bằng KMS (Key Management Service)
+- Điểm quan trọng:
+    + Việc mã hóa phải được xác định ngay từ khi khởi tạo database 
+    + Nếu master không được mã hóa, thì read replicas cũng sẽ không thể mã hóa 
+- Nếu bạn có một database chưa mã hóa, cách duy nhất để mã hóa là:
+    + Tạo snapshot từ database chưa mã hóa 
+    + Restore snapshot đó thành một database mới có mã hóa 
+# Mã hóa dữ liệu in-flight 
+- Đây là quá trình bảo vệ dữ liệu khi truyền giữa client và database 
+- Mặc định, RDS và Aurora hỗ trợ in-flight encryption 
+- Để kết nối an toàn, client phải sử dụng TLS root certificates do AWS cung cấp (tải trực tiếp từ AWS website)
+
+# Xác thực kết nối vào Database 
+- Có 2 phương thức:
+    1. Classic authentication: Username + Password 
+    2. IAM Roles:
+        + EC2 instance hoặc service khác có IAM role -> kết nối trực tiếp vào database 
+        + Ưu điểm: không cần quản lí mật khẩu, dễ kiểm soát tập trung bằng IAM 
+    
+# Kiểm soát truy cập mạng 
+- Sử dụng Security Groups để quy định:
+    + Port nào được mở 
+    + IP nào được phép kết nối 
+    + Security Groups khác nào được phép truy cập 
+- Đây chính là cơ chế chinh để kiểm soát ai có thể kết nối tới RDS/Aurora 
+
+# Quyền truy cập hệ thống 
+- RDS và Aurora và Managed Services -> bạn không có SSH access vào hệ điều hành 
+- Ngoại lệ duy nhất: RDS Custom, nơi bạn có quyền truy cập vào EC2 underlying instance 
+
+# Audit Logs (Nhật ký truy vấn và sự kiện)
+- Có thể bật Audit Logs để theo dõi:
+    + Các truy vấn SQL 
+    + Hoạt động trên database theo thời gian 
+- Tuy nhiên:
+    + Audit Logs sẽ không được giữ lâu dài 
+    + Nếu muốn lưu trữ dài hạn -> bạn cần gửi log sang CloudWatch Logs 
+- Với CloudWatch Logs, bạn có thể:
+    + Lưu trữ lâu dài
+    + Phân tích log 
+    + Tạo cảnh báo (alerts)
+
+
