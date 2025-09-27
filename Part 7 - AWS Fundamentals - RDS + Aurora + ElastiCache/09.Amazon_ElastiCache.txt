@@ -1,0 +1,71 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm Amazon ElastiCache và mối quan hệ với RDS 
+- Biết vai trò của cache trong việc tăng hiệu năng và giảm tải database 
+- Nắm được các kiến trúc điển hình khi sử dụng Elasti Cache: cache hit/miss và lưu trữ session để làm ứng dụng stateless 
+- So sánh chi tiết 2 engine: Redis và Memcached 
+- Hiểu các lợi ích mà AWS cung cấp khi quản lí ElastiCache 
+
+# Giới thiệu ElastiCache
+- Giống như RDS cung cấp dịch vụ quản lý cơ sở dữ liệu quan hệ, thì Amazon ElastiCache là dịch vụ quản lý Redis hoặc Memcached - hai công nghệ cache phổ biến 
+- Cache là in-memory database (cơ sở dữ liệu trong bộ nhớ RAM):
+    + Hiệu năng rất cao, độ trễ rất thấp 
+    + Được dùng để giảm tải cho database, đặc biệt trong workload đọc nhiều (read-intensive)
+- Ý tưởng chính:
+    + Các truy vấn thường xuyên (common queries) sẽ được lưu (cache)
+    + Ứng dụng chỉ cần lấy dữ liệu từ cache -> không cần query lại database mỗi lần 
+
+# Lợi ích từ ElastiCache 
+- Giảm tải cho database: RDS không phải xử lý mọi truy vấn 
+- Ứng dụng stateless: Có thể lưu trạng thái ứng dụng (ví dụ: session người dùng) vào ElastiCache 
+- Được AWS quản lý hoàn toàn:
+    + Hệ điều hành, patching, tối ưu hóa 
+    + Thiết lập, cấu hình, giám sát 
+    + Backup, phục hồi, xử lý sự cố 
+- Tuy nhiên:    
+    + Khi dùng ElastiCache, bạn cần sửa đổi code ứng dụng 
+    + Ứng dụng phải được thiết kế để:
+        . Kiểm tra cache trước khi query DB 
+        . Cập nhật cache sau khi có dữ liệu mới 
+
+# Kiến trúc sử dụng ElastiCache
+a. Cache Hit & Cache Miss 
+- Ứng dụng gửi query -> ElastiCache 
+    + Nếu ứng dụng đã có trong cache -> gọi là cache hit -> trả kết quả ngay 
+    + Nếu dữ liệu chưa có trong cache -> gọi là cache miss -> phải query database 
+      Sau đó kết quả có thể được lưu vào cache -> phục vụ các lần sau 
+b. Stateless Application bằng ElastiCache 
+- Khi người dùng login, session sẽ được lưu trong ElastiCache 
+- Nếu người dùng chuyển sang một instance khác của ứng dụng:
+    + Ứng dụng chỉ cần lấy session từ ElastiCache 
+    + Người dùng không cần login lại 
+- Đây là cách làm ứng dụng stateless và dễ dàng mở rộng hơn 
+
+# Redis vs Memcached trong ElastiCache 
+- Redis:
+    + Multi-AZ với Auto-failover -> tăng tính sẵn sàng 
+    + Hỗ trợ read replicas để mở rộng đọc (scale read)
+    + Durability: hỗ trợ AOF persistence (Append Only File)
+    + Có backup & restore (giống bản open-source Redis)
+    + Hỗ trợ Sets & Sorted Sets -> dùng cho leaderboard 
+    + Thường dùng khi cần:
+        . Tính sẵn sàng cao 
+        . Khả năng mở rộng đọc
+        . Các cấu trúc dữ liệu nâng cao 
+-> Hình dung: Redis node được replicate sang node khác để đảm bảo HA 
+- Memcached:
+    + Hỗ trợ multi-node với data partitioning (sharding)
+    + Không có replication, không có HA (trừ bản serverless đặc biệt)
+    + Backup & restore: chỉ có ở bản serverless 
+    + Có kiến trúc multi-threaded, phù hợp cho hiệu năng cao 
+    + Thường dùng khi:
+        . Ứng dụng chỉ cần cache đơn giản
+        . Không cần replication hoặc backup 
+        . Tối ưu throughput, hiệu năng ở mức cao 
+-> Hình dung: nhiều node chạy song song, chia sẻ dữ liệu bằng sharding 
+
+# LƯU Ý CHO KỲ THI: 
+- Bài thi có thể không hỏi trực tiếp "Redis & Memcached chọn cái nào", nhưng bạn cần:
+    + Biết Redis mạnh về HA, backup, persistence, dữ liệu nâng cao 
+    + Biết Memcached mạnh về sharding, hiệu năng, đơn giản 
+- Khi thấy câu hỏi về leaderboard, sets, durability -> Redis
+- Khi thấy câu hỏi về simple cache, multi-thread, sharding -> Memcached 
