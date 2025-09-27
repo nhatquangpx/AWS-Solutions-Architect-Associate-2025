@@ -1,0 +1,46 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm Amazon RDS Proxy và lý do cần sử dụng thay vì kết nối trực tiếp đến RDS 
+- Biết cách connection pooling giúp tối ưu hiệu năng và giảm tải cho RDS 
+- Nắm rõ lợi ích: cải thiện hiệu suất, giảm thời gian failover, hỗ trợ IAM authentication, tăng cường bảo mật 
+- Hiểu mối quan hệ giữa RDS Proxy và Lambda functions trong việc quản lý kết nối hàng loạt 
+
+# Giới thiệu RDS Proxy 
+- RDS Proxy là một dịch vụ database proxy được quản lý hoàn toàn (fully managed) trong AWS 
+- Thay vì ứng dụng kết nối trực tiếp đến RDS database, ứng dụng sẽ kết nối đến Proxy, và Proxy sẽ quản lý - gom - chia sẻ các kết nối đến database 
+- Proxy hoạt động trong VPC của bạn (không công khai ra internet)
+
+# Tại sao cần RDS Proxy?
+- Nếu ứng dụng của bạn mở rất nhiều kết nối trực tiếp đến RDS database: 
+    + Điều này tạo áp lực lớn đến CPU, RAM và tài nguyên database
+    + Nguy cơ nhiều kết nối mở dư thừa, gây timeout 
+-> Với RDS Proxy:
+    + Proxy sẽ pool (gom) nhiều kết nối ứng dụng thành ít kết nối hơn đến RDS 
+    + Giúp giảm tải trên RDS instance
+    + Cải thiện hiệu năng, ổn định và khả năng mở rộng 
+
+# Đặc điểm của RDS Proxy 
+- Serverless & Auto Scaling -> Không cần quản lý dung lượng 
+- Highly Available (HA) -> Hoạt động trên nhiều AZ 
+- Failover nhanh hơn: Nếu RDS chuyển từ Primary sang Standby, RDS Proxy giúp giảm thời gian failover đến 66%
+- Hỗ trợ các engine:
+    + MySQL
+    + PostgreSQL
+    + MariaDB
+    + Microsoft SQL Server 
+    + Aurora (MySQL & PostgreSQL)
+
+# Tích hợp với ứng dụng 
+- Không cần thay đổi code 
+- Thay vì kết nối đến RDS/Aurora trực tiếp -> chỉ cần kết nối đến endpoint của proxy 
+
+# Lợi ích bảo mật từ RDS Proxy 
+- Có thể ép buộc xác thực qua IAM thay vì username/password truyền thống 
+- Kết hợp với AWS Secrets Manager để lưu trữ thông tin xác thực an toàn 
+- Proxy không bao giờ public, chỉ truy cập từ VPC nội bộ -> tăng cường bảo mật 
+
+# Trường hợp đặc biệt: Lambda Functions 
+- Lambda có thể tạo ra hàng trăm, hàng nghìn function trong vài giây -> mỗi function mở 1 kết nối đến RDS -> dễ gây quá tải, nhiều kết nối bỏ trống 
+- Giải pháp: 
+    + Lambda kết nối đến RDS Proxy thay vì RDS trực tiếp 
+    + Proxy chịu tải lớn từ Lambda, gom nhiều kết nối nhỏ -> thành ít kết nối đến RDS 
+    + Nhờ đó, database không bị nghẽn do quá nhiều connection 
