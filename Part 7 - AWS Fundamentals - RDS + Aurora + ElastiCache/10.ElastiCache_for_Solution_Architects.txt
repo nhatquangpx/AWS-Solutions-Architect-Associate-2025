@@ -1,0 +1,43 @@
+        ### Mục tiêu bài học ###
+- Hiểu các cơ chế bảo mật của Amazon ElastiCache (Redis và Memcached)
+- Nắm rõ IAM Authentication, Redis AUTH, SASL Authentication và SSL in-flight encryption 
+- Biết các chiến lược load dữ liệu vào cache: Lazy Loading, Write Through, Session Store
+- Hiểu được usecase quan trọng của Redis trong việc xây dựng gaming leaderboard realtime với Sorted Sets 
+
+# Các cơ chế bảo mật trong ElastiCache
+- Redis:
+    + Redis trong ElastiCache hỗ trợ IAM Authentication (chỉ Redis, không áp dụng cho Memcached)
+    + Tuy nhiên, nếu bạn định nghĩa IAM policies trên ElastiCache, thì các policy đó chỉ được áp dụng ở API-level security (tức là khi gọi API của AWS, không phải ở mức độ truy cập trực tiếp cache)
+    + Redis hỗ trợ Redis AUTH: Khi bạn tạo một Redis cluster, bạn có thể cấu hình mật khẩu và token. Điều này giúp tăng cường bảo mật, kết hợp cùng với Security Groups 
+    + Hỗ trợ SSL in-flight encryption: đảm bảo dữ liệu truyền qua mạng giữa ứng dụng và Redis cluster được mã hóa, tránh rò rỉ dữ liệu 
+- Memcached:
+    + Memcached không hỗ trợ IAM Authentication
+    + Thay vào đó, nó hỗ trợ SASL-based Authentication - một cơ chế xác thực nâng cao 
+
+# Các mô hình tải dữ liệu (Cache Loading Patterns) trong ElastiCache
+1. Lazy Loading (Cache-aside pattern)
+- Khi ứng dụng cần dữ liệu, nó sẽ kiểm tra trong cache:
+    + Nếu Cache Hit -> trả về ngay
+    + Nếu Cache Miss -> đọc từ database, sau đó ghi vào cache để các lần sau dùng lại 
+- Nhược điểm: dữ liệu trong cache có thể lỗi thời (stale data) vì không được update ngay khi DB thay đổi 
+2. Write Through
+- Mỗi khi có dữ liệu mới được ghi vào database, dữ liệu đó đồng thời được cập nhật vào cache 
+- Ưu điểm: không bao giờ có stale data trong cache
+- Nhược điểm: cache có thể chứa dữ liệu không được truy vấn nhiều, gây lãng phí bộ nhớ 
+3. Session State 
+- Lưu trữ session của người dùng vào ElastiCache thay vì giữ trong ứng dụng 
+- Giúp ứng dụng trở nên stateless (không phụ thuộc vào session nội bộ)
+- Có thể cấu hình Time-to-live để session tự động hết hạn 
+=> "Caching rất khó" - vấn đề khó nhất là xác định khi nào cache hết hạn và cách đặt tên hợp lý
+
+# Usecase quan trọng với Redis - Gaming Leaderboard 
+- Một ứng dụng rất hay của Redis trong thực tế là bảng xếp hạng realtime cho game 
+- Redis có Sorted Sets - tập hợp dữ liệu đảm bảo tính duy nhất và thứ tự sắp xếp 
+- Mỗi khi có người chơi đạt điểm, hệ thống sẽ cập nhật vào Sorted Sets: 
+    + Redis sẽ xếp hạng người chơi ngay lập tức 
+    + Bảng xếp hạng luôn sẵn sàng, thống nhất trên toàn cluster Redis 
+- Ví dụ:
+    + Người chơi đạt 100 điểm → Redis tự động xếp vào đúng vị trí.
+    + Người khác đạt 200 điểm → Redis sắp lại thứ hạng.
+    + Tất cả client (ứng dụng game, web, mobile) khi kết nối vào ElastiCache Redis đều thấy bảng xếp hạng realtime mà không cần bạn lập trình phức tạp trong ứng dụng.
+-> Đây là một key use case có thể xuất hiện trong kỳ thi AWS: Nếu đề nhắc đến real-time leaderboard, bạn cần nghĩ ngay đến Redis với Sorted Sets.
