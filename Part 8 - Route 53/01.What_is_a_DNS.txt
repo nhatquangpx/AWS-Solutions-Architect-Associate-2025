@@ -1,0 +1,58 @@
+        ### Mục tiêu bài học ###
+- Hiểu DNS là gì và tại sao nó được gọi là "xương sống của internet"
+- Nắm được cấu trúc phân cấp của tên miền: root, TLD, second-level domain, subdomain, FQDN
+- Biết được cá thuật ngữ cơ bản của DNS: domain registrar, DNS records, zone file, name servers
+- Hiểu quy trình DNS query hoạt động: từ local DNS server -> root server -> TLD server -> authoriative DNS server 
+
+# DNS là gì?
+- Domain Name System
+- Vai trò: chuyển đổi tên miền thân thiện với con người thành địa chỉ IP của máy chủ mà máy tính có thể hiểu và kết nối 
+- Ví dụ: gõ google.com -> DNS trả về IP -> trình duyệt dùng IP này để truy cập server Google 
+- DNS chính là xương sống của Internet 
+
+# Cấu trúc phân cấp của tên miền 
+- DNS có cấu trúc phân cấp (hierarchical naming structure)
+- Ví dụ: api.www.example.com.
+    + . (dot cuối cùng) -> Root (gốc của hệ thống tên miền)
+    + .com -> Top Level Domain (TLD, tên miền cấp cao nhất)
+    + example.com -> Second-level domain (tên miền cấp 2)
+    + www.example.com -> Subdomain 
+    + api.www.example.com -> FQDN (Fully Qualified Domain Name), tên miền đủ định danh 
+    + HTTP:// -> giao thức (protocol)
+    + Tất cả kết hợp với nhau -> URL (Uniform Resource Locator)
+
+# Các thuật ngữ quan trọng trong DNS 
+- Domain Registrar: Nơi đăng ký tên miền. Có thể là Route 53, GoDaddy,..
+- DNS Records: Các bản ghi dùng để ánh xạ tên miền với IP hoặc thông tin khác. Ví dụ:
+    + A Record -> Ánh xạ hostname với IPv4 
+    + AAAA Record -> Ánh xạ hostname với IPv6 
+    + CNAME -> bí danh cho một tên miền khác 
+    + NS -> Name Server record 
+- Zone file: File chứa tất cả DNS records cho một domain 
+- Name servers (NS): Máy chủ DNS có nhiệm vụ giải quyết (resolve) truy vấn DNS 
+- TLD (Top Level Domain): .com, .org, .gov,...
+- Second-level domain: amazon.com, google.com 
+
+# Cách DNS hoạt động (DNS Query Process)
+Giả sử muốn truy cập "example.com", ánh xạ đến IP 9.10.11.12:
+1. Trình duyệt hỏi Local DNS Server (của ISP hoặc công ti bạn):
+- "Bạn có biết example.com không?"
+- Nếu đã cache -> trả lời ngay. Nếu chưa -> đi hỏi tiếp
+2. Local DNS hỏi Root DNS Server (ICANN quản lí):
+- RootDNS không biết IP chính xác, nhưng nó biết Name Server của .com 
+- Trả về: "Hãy hỏi .com NS tại IP 1234"
+3. Local DNS hỏi TLD Server (.com server, do IANA quản lý):
+- .com NS cũng không có câu trả lời cuối cùng, nhưng biết Name Server của example.com 
+- Trả về: "example.com được quản lý tại NS có IP 5.6.7.8"
+4. Local DNS hỏi Authoriative DNS Server (NS của example):
+- Server này (thường được quản lí bởi Domain Registrar như Route 53) có bản ghi A cho example.com 
+- Nó trả về: "example.com là A record, IP = 9.10.11.12"
+5. Local DNS cache kết quả để trả lời nhanh cho các request sau 
+6. Trình duyệt nhận IP -> kết nối web server tại 9.10.11.12 và tải trang web 
+=> Đây gọi là quá trình recursive DNS resolution 
+
+# Tóm tắt quy trình bằng ví dụ thực tế
+- Bạn gõ: www.google.com.
+- Local DNS không biết → hỏi Root → hỏi .com NS → hỏi google.com NS.
+- google.com NS trả về IP của server Google.
+- Trình duyệt kết nối thành công.
