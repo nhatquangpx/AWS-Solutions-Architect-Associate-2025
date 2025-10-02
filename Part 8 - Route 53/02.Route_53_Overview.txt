@@ -1,0 +1,51 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm và vai trò của Amazon Route 53 trong AWS
+- Nắm được các loại DNS record quan trọng (A, AAAA, CNAME, NS)
+- Hiểu về Hosted Zone (Public vs Private) và cách chúng định tuyến traffic
+- Biết chi phí liên quan đến Route 53 (tạo hosted zone, đăng ký domain)
+
+# Giới thiệu về Route 53 
+- Amazon Route 53 là dịch vụ DNS của AWS 
+- Nó highly available, scalable, fully managed (sẵn sàng cao, mở rộng tốt, được quản lý đầy đủ)
+- Là một authoritative DNS -> nghĩa là khách hàng có toàn quyền cập nhật DNS record 
+- Ví dụ:    
+    + Bạn có 1 EC2 instance với IP công khai (public IP) là 54.22.33.44 
+    + Bạn muốn người dùng truy cập bằng domain: example.com 
+    + Bạn tạo DNS record trong Route 53 hosted zone để ánh xạ (map) example.com -> 54.22.33.44 
+    + Khi client gõ example.com, Route 53 sẽ trả lời IP và client sẽ kết nối trực tiếp đến EC2 
+- Ngoài ra: 
+    + Route 53 cũng có thể làm domain registrar (đăng ký domain mới)
+    + Có thể kiểm tra sức khỏe (health checks) của tài nguyên 
+    + Đây là dịch vụ duy nhất của AWS có SLA 100% uptime 
+    + Tên Route 53 xuất phát từ port 53 - cổng mặc định DNS 
+
+# Cấu trúc của một DNS Record trong Route 53 
+Một bản ghi (record) trong Route 53 sẽ gồm:
+- Domain/Subdomain: Ví dụ example.com, www.example.com 
+- Record Type: loại bản ghi DNS 
+- Value: giá trị của bản ghi (ví dụ địa chỉ IP)
+- Routing Policy: chính sách định tuyến (Route 53 phản hồi truy vấn thế nào)
+- TTL: Thời gian bản ghi được cache ở DNS resolver
+-> Các record type QUAN TRỌNG CẦN NHỚ TRONG KỲ THI:
+    + A record: ánh xạ hostname -> IPv4
+    + AAAA record: ánh xạ hostname → IPv6.
+    + CNAME record: ánh xạ hostname → hostname khác.
+    Ví dụ: www.example.com -> example.com
+    LƯU Ý: Không thể tạo CNAME cho Zone Apex (ví dụ example.com). Chỉ có thể cho subdomain (www.example.com).
+    + NS record: khai báo name server của hosted zone, quyết định server nào có thể trả lời DNS query cho domain.
+
+# Hosted Zone trong Route 53 
+- Hosted Zone là container chứa các bản ghi DNS 
+- Nó định nghĩa cách Route 53 định tuyến traffic cho domain và subdomain 
+- Có 2 loại hosted Zone:
+    + Public Hosted Zone:
+        . Dùng cho domain công khai
+        . Bất kỳ ai trên Internet đều có thể truy vấn bản ghi 
+    + Private Hosted Zone:
+        . Dùng cho domain nội bộ, chỉ có thể truy cập xong VPC của bạn 
+        . Các tài nguyên nội bộ (EC2, DB, API) trong VPC có thể truy vấn và nhận IP private 
+
+# Chi phí 
+- Tạo 1 hosted zone: khoảng 0.5$/tháng 
+- Đăng ký domain: tối thiểu 12$/năm 
+- Route 53 không phải là dịch vụ miễn phí 
