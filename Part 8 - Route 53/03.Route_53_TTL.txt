@@ -1,0 +1,63 @@
+        ### Mục tiêu bài học ###
+- Hiểu rõ khái niệm TTL trong DNS và tại sao nó quan trọng trong Route 53 
+- Phân tích được ưu điểm và nhược điểm của TTL cao và TTL thấp
+- Nắm được chiến lược thay đổi TTL khi cần cập nhật bản ghi DNS 
+- Quan sát TTL hoạt động thực tế qua Route 53 Console, trình duyệt web, và các lệnh như nslookup, dig 
+
+# Khái niệm TTL 
+- TTL là thời gian sống của một bản ghi DNS trong hệ thống cache của client hoặc DNS resolver 
+- Khi client gửi một DNS query đến Route 53, nó nhận lại: 
+    + Loại bản ghi (ví dụ: A record)
+    + Địa chỉ IP của host 
+    + Một giá trị TTL (ví dụ: 300 giây)
+-> TTL yêu cầu client cache kết quả trong đúng khoảng thời gian đó. Trong 300 giây tiếp theo, mọi truy vấn cùng hostname sẽ không gửi lại đến Route 53, mà lấy trực tiếp từ cache 
+-> Kết quả:
+    + Giảm tải cho hệ thống DNS 
+    + Tăng tốc độ phản hồi cho người dùng
+
+# Ảnh hưởng của TTL cao và TTL thấp 
+- TTL cao (ví dụ 24 giờ)
+    + Ưu điểm: 
+        . Ít request gửi tới Route 53 -> giảm chi phí 
+        . Nhanh hơn vì hầu hết client dùng dữ liệu cache 
+    + Nhược điểm:
+        . Nếu thay đổi bản ghi DNS, client có thể phải chờ tới 24 giờ mới nhận được bản ghi mới 
+- TTL thấp (ví dụ 60 giây)
+    + Ưu điểm:
+        . Client nhận bản ghi mới gần như ngay lập tức sau khi thay đổi 
+        . Thích hợp cho ứng dụng động, failover, hoặc khi chuẩn bị migration 
+    + Nhược điểm:
+        . Nhiều request gửi tới Route 53 hơn -> tăng chi phí 
+
+# Chiến lược thay đổi TTL 
+- Nếu bạn biết trước cần thay đổi bản ghi (ví dụ đổi IP máy chủ), bạn có thể:
+    1. Giảm TTL (ví dụ 24h xuống 60 giây)
+    2. Đợi cho tới khi tất cả client đã nhận TTL mới thấp 
+    3. Thực hiện thay đổi bản ghi 
+    4. Sau khi thay đổi hoàn tất, tăng TTL trở lại để tiết kiệm chi phí 
+-> Đây là chiến lược phổ biến để cân bằng giữa hiệu năng và khả năng cập nhật nhanh 
+
+# TTL trong Route 53 Console (Demo)
+- Tạo một record mới: 
+    + Tên: demo.stephanetheteacher.com 
+    + Kiểu: A record 
+    + Giá trị: IP của một EC2 instance (ví dụ eu-central-1)
+    + TTL: 120 giây (2 phút)
+- Sau khi tạo:
+    + Truy cập record bằng trình duyệt (Google Chrome) -> hiển thị nội dung từ EC2 instance tại eu-central-1 
+    + Sử dụng CloudShell kiểm tra bằng lệnh:
+        . nslook demo.stephanetheteacher.com -> trả về đúng IP 
+        . dig demo.stephanetheteacher.com -> hiển thị TTL trong phần ANSWER SECTION 
+- Quan sát TTL giảm dần: 
+    + Ví dụ ban đầu TTL = 115 giây 
+    + Chạy lại lệnh sau vài giây, TTL = 98 giây
+    + Điều này cho thấy client vẫn dùng bản ghi cache cho tới khi TTL hết hạn 
+
+# Thay đổi bản ghi khi TTL chưa hết 
+- Nếu chỉnh sửa record và đổi sang một IP khác (ví dụ ap-southeast-1), client sẽ chưa thấy sự thay đổi ngay 
+- Nguyên nhân: record cũ vẫn còn trong cache, chỉ khi TTL hết hạn client mới gửi lại truy vấn DNS mới và nhận IP mới 
+Ví dụ trong demo:
+- TTL còn 66 giây, nên trình duyệt và lệnh dig vẫn trả về IP cũ ở eu-central-1
+- Sau khi TTL hết -> refresh trình duyệt -> nhận IP mới ở ap-southeast-1 
+
+
