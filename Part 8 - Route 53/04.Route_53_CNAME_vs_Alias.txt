@@ -1,0 +1,46 @@
+        ### Mục tiêu bài học ###
+- Hiểu rõ sự khác biệt giữa CNAME và Alias Record trong Route 53 
+- Biết được giới hạn của CNAME (không dùng cho root domain/apex domain)
+- Nắm vững ưu điểm của Alias Record: dùng được cho apex, miễn phí, có health check, tự động nhận IP mới 
+- Thực hành tạo CNAME Record và Alias Record trong Route 53, bao gồm cả trường hợp domain apex 
+
+# Bối cảnh
+- Trong AWS, nhiều dịch vụ như Elastic Load Balancer (ALB/CLB), CloudFront sẽ cung cấp cho bạn một hostname mặc định (ví dụ: blabla.amazonaws.com).
+- Bạn thường muốn gắn hostname này vào domain riêng của bạn, 
+ví dụ: myapp.mydomain.com → ALB hostname
+- Để thực hiện việc này, ta có 2 lựa chọn:
+    + CNAME Record
+    + Alias Record (chỉ có trong Route 53).
+
+# CNAME Record
+- CNAME (Canonical Name) cho phép trỏ một hostname tới một hostname khác.
+Ví dụ:
+app.mydomain.com → blabla.anything.com
+- Lưu ý quan trọng:
+    + CNAME chỉ dùng được với subdomain (non-root domain).
+    Ví dụ: app.mydomain.com được phép.
+    + Nhưng mydomain.com (apex/root domain) không được phép dùng CNAME.
+- Đây là chuẩn DNS chung, không phải AWS đặc biệt.
+
+# Alias Record
+- Alias Record là mở rộng của Route 53, thay thế được CNAME trong nhiều trường hợp.
+- Ưu điểm của Alias Record:
+    + Hỗ trợ root domain (apex domain):
+    Ví dụ: mydomain.com → ALB / CloudFront / S3 Website ...
+    Cái mà CNAME không làm được.
+    + Miễn phí: Truy vấn tới Alias Record không tính phí.
+    + Health Check tích hợp: Route 53 có thể kiểm tra tình trạng tài nguyên đích.
+    + Tự động cập nhật IP: Nếu đích (ví dụ ALB) thay đổi IP, Alias tự động nhận IP mới.
+    + Bắt buộc là type A hoặc AAAA (IPv4 / IPv6).
+    + TTL: không được tự đặt, mà Route 53 tự quản lý.
+
+# Alias Record có thể trỏ tới những tài nguyên nào trong AWS?
+    + Elastic Load Balancers (ALB, NLB, CLB).
+    + CloudFront Distributions.
+    + API Gateway.
+    + Elastic Beanstalk environments.
+    + S3 Websites (khi bucket bật chế độ Static Website Hosting).
+    + VPC Interface Endpoints.
+    + Global Accelerator.
+    + Route 53 record khác trong cùng hosted zone.
+- Không hỗ trợ: EC2 DNS name (không thể đặt alias trỏ trực tiếp vào EC2 instance).
