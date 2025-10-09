@@ -1,0 +1,55 @@
+        ### Mục tiêu bài học ###
+- Hiểu Routing Policy (chính sách định tuyến) trong Route 53 là gì và chức năng thực sự của nó trong hệ thống DNS 
+- Nắm được các loại routing policy mà Route 53 hỗ trợ 
+- Hiểu rõ Simple Routing Policy - cách hoạt động, đặc điểm, giới hạn và ví dụ thực tế khi sử dụng
+- Biết cách tạo bản ghi trong AWS Route 53 với Simple Routing Policy, cách cấu hình TTL, alias, và cách kiểm tra bằng lệnh dig 
+
+# Khái niệm Routing Policy trong Route 53
+- Routing Policy là chính sách định tuyến giúp Route 53 trả lời các truy vấn DNS (DNS queries)
+### LƯU Ý: Từ "routing" trong cụm từ routing policy không mang nghĩa giống như "routing" trong load balancer:
+        + Một load balancer sẽ thực sự điều phối lưu lượng mạng tới các EC2 backend.
+        + Route 53 thì không định tuyến lưu lượng thật sự – nó chỉ phản hồi các truy vấn DNS.
+- DNS không truyền dữ liệu, không chuyển tiếp traffic 
+- Nó chỉ giúp dịch tên miền (hostname) thành địa chỉ IP hoặc endpoint thực tế mà client sẽ dùng để gửi yêu cầu 
+-> DNS chỉ nói cho trình duyệt biết đi đâu, chứ không đưa bạn đi 
+
+# Các loại Routing Policy trong Route 53 
+- Amazon Route 53 hỗ trợ 7 loại routing policy khác nhau:
+    1. Simple routing
+    2. Weighted routing
+    3. Failover routing
+    4. Latency-based routing
+    5. Geolocation routing
+    6. Multi-value answer routing
+    7. Geoproximity routing
+
+# Simple Routing Policy là gì?
+- Là chính sách định tuyến đơn giản nhất trong Route 53
+- Dùng để định tuyến lưu lượng tới một tài nguyên duy nhất (single resource)
+- Thường được dùng khi bạn chỉ có một server, một website, hoặc một IP cố định
+- Ví dụ:
+    + Client gửi truy vấn DNS:
+        foo.example.com
+    + Route 53 phản hồi:
+        A record → 12.34.56.78
+    => Client sẽ truy cập vào IP đó 
+
+# Simple Routing with Multiple Values 
+- Bạn có thể chỉ định nhiều giá trị IP trong cùng một bản ghi A record 
+- Ví dụ: Bạn tạo bản ghi A với:
+    foo.example.com → 12.34.56.78
+    foo.example.com → 98.76.54.32
+    foo.example.com → 54.12.34.98
+Khi đó:
+    + Route 53 sẽ trả về cả 3 địa chỉ IP 
+    + Client sẽ ngẫu nhiên chọn một IP để gửi request 
+    => Đây không phải load balancing thật sự - mà là client-side load balancing (ngẫu nhiên chọn IP từ danh sách DNS)
+
+# Simple Routing vs Alias Record 
+- Khi bạn dùng Alias Record (liên kết đến tài nguyên AWS như ELB, CloudFront,...), thì chỉ có thể chỉ định duy nhất một AWS resource làm đích (target)
+
+# Hạn chế của Simple Routing Policy 
+- Vì tính chất đơn giản của nó, Simple Routing:
+    + Không hỗ trợ Health Check (kiểm tra tình trạng hoạt động của tài nguyên)
+    + Chỉ phản hồi DNS một cách static, không thông minh hay thay đổi theo điều kiện hệ thống 
+    
