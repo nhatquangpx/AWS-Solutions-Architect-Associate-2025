@@ -1,0 +1,26 @@
+        ### Mục tiêu bài học ###
+- Hiểu rõ khái niệm và cơ chế hoạt động của Latency-based Routing Policy trong AWS Route 53 
+- Biết cách cấu hình và triển khai chính sách định tuyến theo độ trễ trong thực tế trên console 
+- Nắm được cách kiểm tra, xác minh hoạt động của chính sách định tuyến theo độ trế bằng các công cụ như VPN và dig command
+
+# Giới thiệu 
+- Latency-based routing policy trong Route 53, giúp chuyển hướng người dùng đến tài nguyên có độ trễ thấp nhất, tức là nơi có tốc độ phản hồi nhanh nhất từ góc nhìn người dùng
+
+# Mục đích sử dụng
+- Chính sách này rất hữu ích khi độ trễ là mối quan tâm chính 
+- Ví dụ như các trang web ứng dụng cần tốc độ phản hồi nhanh trên phạm vi toàn cầu 
+
+# Cách hoạt động 
+- AWS Route 53 sẽ đo độ trễ giữa người dùng và các vùng AWS có chứa tài nguyên tương ứng (như EC2, ALB,...)
+- Sau đó Route 53 sẽ chuyển hướng người dùng đến vùng có độ trễ thấp nhất 
+- Ví dụ:
+    + Một người dùng ở Đức có đỗ trễ thấp nhất tới US region, thì họ sẽ được định tuyến đến đó 
+    + Người dùng ở châu Á có độ trễ thấp nhất tới Singapore (ap-southeast-1) sẽ dược định tuyến tới máy chủ tại Singapore 
+- Chính sách này có thể kết hợp với Health Check để đảm bảo chỉ những endpoint đang hoạt động tốt mới được chọn 
+
+# Minh họa ví dụ thực tế
+- Giả sử chúng ta triển khai ứng dụng của mình ở 2 vùng: up-east-1 (Mỹ) và ap-southeast-1 (Singapore)
+- Người dùng trên khắp thế giới sẽ được Route 53 đánh giá độ trễ và tự động điều hướng:
+    + Người dùng gần Mỹ -> us-east-1
+    + Người dùng gần Singapore -> ap-southeast-1 
+    
