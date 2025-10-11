@@ -1,0 +1,34 @@
+        ### Mục tiêu bài học ###
+- Hiểu Weighted Routing Policy trong Amazon 53 là gì và cách nó hoạt động 
+- Biết cách phân phối tỉ lệ phần trăm truy cập (traffic) đến các tài nguyên khác nhau bằng cách gán trọng số (weight)
+- Nắm được công thức tính tỷ lệ phân phối, cũng như các quy tắc khi tạo bản ghi weighted trong Route 53
+- Hiểu các trường hợp sử dụng thực tế: cân bằng tải, thử nghiệm phiên bản mới, hay chuyển hướng dần lưu lượng
+- Biết thực hành cấu hình Weighted Routing Policy trên console và cách kiểm tra bằng lệnh dig để xem sự thay đổi phản hồi của DNS 
+
+# Khái niệm cơ bản 
+- Weighted Routing Policy cho phép bạn kiểm soát tỉ lệ phần trăm các yêu cầu (DNS queries) được gửi đến từng tài nguyên cụ thể dựa trên trọng số mà bạn đặt 
+- Ví dụ: có 3 máy chủ (EC2 instance), có thể cấu hình:
+    + Máy chủ 1 trọng số 70
+    + Máy chủ 2 trọng số 20
+    + Máy chủ 3 trọng số 10 
+=> Có nghĩa là khoảng 70% truy vấn DNS sẽ được Route 53 trả về IP của máy chủ 1, 20% cho máy chủ 2 và 10% cho máy chủ 3
+
+# Cách Route 53 tính toán tỉ lệ phân phối 
+- Tỷ lệ phân phối không cần phải tổng cộng đúng 100 - vì Route 53 sẽ tự động quy đổi tỷ lệ dựa trên công thức
+    Phần trăm phân phối = Weight của record / Tổng Weight của tất cả record
+- Ví dụ: Nếu có 3 bản ghi với trọng số 7, 2, 1 -> Tổng = 10 
+    -> Các phần trăm thực tế sẽ là 70% 20% 10% 
+- Lưu ý: Trọng số chỉ mang tính tương đối, không cần chính xác đến 100 
+
+# Điều kiện để Weighted Policy hoạt động 
+- Tất cả DNS record trong nhóm phải có cùng tên và cùng loại (record name + type)
+- Có thể liên kết với health check (kiểm tra tình trạng tài nguyên), nhưng trong ví dụ này chúng ta chưa dùng đến 
+- Mỗi record có Record ID riêng, giúp Route 53 nhận diện từng bản ghi trong cùng nhóm weighted 
+
+# Các trường hợp sử dụng phổ biến 
+- Load balancing giữa các máy chủ hoặc vùng khác nhau 
+- Thử nghiệm phiên bản mới (A/B testing) - gửi một phần nhỏ traffic đến các phiên bản mới 
+- Triền khai dần (gradual rollout) - bắt đầu với 10% traffic đến hệ thống mới, rồi tăng dần theo thời gian 
+- Tạm ngưng gửi lưu lượng: gán weight = 0 để tạm thời ngắt traffic đến một instance 
+- Nếu tất cả weight = 0, Route 53 sẽ trả về các bản ghi với trọng số bằng nhau (ngang bằng)
+
