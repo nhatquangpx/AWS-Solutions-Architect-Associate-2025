@@ -1,0 +1,94 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm và vai trò Health Check trong Route 53
+- Biết các loại Health Check trong AWS Route 53 và cách chúng hoạt động 
+- Nắm được cách cấu hình Health Check cho tài nguyên công khai và tài nguyên riêng tư 
+- Biết cách Route 53 tự động thực hiện DNS failover dựa trên kết quả Health Check 
+
+# Giới thiệu chung 
+- Trong Route 53, Health Check là cơ chế giúp kiểm tra tình trạng của các tài nguyên - chủ yếu là public resources 
+- Tuy nhiên, cũng có cách để giám sát các tài nguyên riêng tư 
+
+# Kịch bản thực tế
+- Giả sử có 2 Load Balancer đặt ở 2 vùng khác nhau (ví dụ: us-east-1 và eu-west-1)
+- Đằng sau mỗi Load Balancer là ứng dụng của bạn, được triển khai ở cả 2 vùng để đảm bảo tính sẵn sàng cao (high availability)
+- Khi người dùng truy cập tên miền mydomain.com, Route 53 sẽ sử dụng các bản ghi DNS để chuyển hướng người dùng đến Load Balancer gần nhất, ví dụ như dựa trên latency-based routing 
+- Nhưng có một vấn đề: nếu một vùng bị down, bạn không muốn người dùng bị chuyển hướng đến vùng đó
+=> Sử dụng Route 53 Health Checks 
+
+# Mục đích của Health Check
+- Health Check cho phép Route 53 giám sát tình trạng của tài nguyên - ví dụ như Load Balancer, server hay ứng dụng 
+- Nếu một tài nguyên không phản hồi đúng, Route 53 sẽ tự động ngừng chuyển hướng người dùng đến đó 
+-> Giúp DNS tự động failover sang tài nguyên khác đang hoạt động 
+
+# Các loại Health Check trong Route 53 
+- Route 53 cung cấp 3 loại Health Check chính:
+1. Health Check giám sát Endpoint (Public Endpoint)
+- Dùng để giám sát tài nguyên công khai (như ALB, EC2 public, website, API,...)
+- Route 53 sẽ gửi các yêu cầu HTTP/HTTPS/TCP đến endpoint và kiểm tra phản hồi 
+- Nếu nhận được status code hợp lệ (2xx hoặc 3xx) -> tài nguyên healthy. Ngược lại -> unhealthy
+2. Calculated Health Check 
+- Là loại Health Check kết hợp nhiều Health Check con (child health checks)
+-> tạo thành một Health Check cha (parent health check)
+- Cho phép tạo điều kiện logic như:
+    + AND - tất cả con phải "healthy" thì cha mới "healthy"
+    + OR - chỉ cần một con "healthy" là cha "healthy"
+    + NOT - phủ định điều kiện 
+- Có thể giám sát tối đa 256 child health checks 
+- Ứng dụng: dùng khi muốn duy trì website trong chế độ bảo trì mà không làm hệ thống fail hoàn toàn 
+3. Health Check dựa trên CloudWatch Alarm 
+- Dành cho tài nguyên riêng tư như EC2 trong VPC hoặc on-premises 
+- Vì các Health Checker của Route 53 nằm trên mạng công cộng, nên không thể truy cập private endpoint 
+- Cách xử lý:
+    1. Theo dõi tài nguyên bằng CloudWatch Metric 
+    2. Tạo CloudWatch Alarm khi Metric vượt ngưỡng (threshold)
+    3. Liên kết Alarm này với Health Check trong Route 53
+        -> Khi Alarm chuyển sang trạng thái "ALARM", Health Check sẽ được đánh dấu là unhealthy 
+=> Đây là phương pháp tiêu chuẩn để giám sát tài nguyên private 
+
+# Cách Health Check hoạt động chi tiết 
+- Khi bạn tạo một Health Check cho endpoint (ví dụ: ALB ở eu-west-1):
+    + AWS có khoảng 15 "health checkers" trên toàn cầu, mỗi cái ở một vị trí khác nhau
+    + Các health checkers này đều đặn gửi yêu cầu đến endpoint của bạn (HTTP, HTTPS hoặc TCP)
+    + Nếu endpoint phản hồi đúng (ví dụ 200 OK), nó sẽ coi là healthy
+- Một số chi tiết kỹ thuật quan trọng:
+    + Có thể chọn chu kỳ kiểm tra (interval):
+        . 30s (standard)
+        . 10s (fast health check - tốn chi phí cao hơn)
+    + Hỗ trợ các giao thức: HTTP, HTTPS, TCP 
+    + Ngưỡng xác định healthy:
+        -> Nếu trên 18% số health checkers báo healthy, thì endpoint được coi là healthy
+        -> Nếu thấp hơn thì là unhealthy 
+    + Có thể chọn vùng (location) mà bạn muốn health checkers sử dụng để kiểm tra 
+
+# Kiểm tra nâng cao (Text-based check)
+- Nếu phản hồi của ứng dụng là dạng text-based response 
+-> Health Checker có thể đọc tối đa 5120 bytes đầu tiên của nội dung phản hồi 
+-> để tìm kiếm một chuỗi ký tự cũ thể (specific text) trong response đó 
+- Điều này giúp bạn xác minh rằng ứng dụng không chỉ phản hồi, mà còn phản hồi đúng nội dung mong muốn
+
+# Yêu cầu mạng (Networking requirement)
+- Để Health Check hoạt động được:
+    + Endpoint của bạn (ví dụ ALB hoặc EC2) phải cho phép các IP của Route 53 Health Checkers truy cập vào 
+    + Vì vậy, bạn cần mở inbound rule trong Security Group hoặc Network ACL 
+    -> cho phép các IP từ danh sách Health Checker IP của Route 53 
+    + Danh sách địa chỉ IP này được AWS công bố công khai tại liên kết nằm góc dưới bên phải của tài liệu (AWS cung cấp URL chính thức)
+
+# Ví dụ minh họa: Calculated Health Check 
+- Giả sử có 3 EC2 instances:
+    + Mỗi EC2 có một child health check riêng 
+    + Sau đó, ta tạo một parent health check kết hợp 3 cái con đó 
+-> Parent Health Check có thể:
+    + Chỉ định điều kiện: ví dụ ít nhất 2/3 instance healthy thì parent được coi là healthy 
+    + Dùng khi cần logic linh hoạt hoặc muốn tránh false alarm khi bảo trì
+
+# Giám sát tài nguyên riêng tư bằng CloudWatch 
+- Với EC2 trong private subnet:
+    + Route 53 Healtch Checker không thể truy cập trực tiếp 
+    + Cách giải quyết:  
+        1. Tạo CloudWatch Metric giám sát hiệu năng (ví dụ: CPUUtilization, StatusCheckFailed,...)
+        2. Thiết lập CloudWatch Alarm: khi Metric vượt ngưỡng -> Alarm = "ALARM"
+        3. Tạo Route 53 Health Check liên kết với Alarm đó 
+        -> Khi Alarm kích hoạt, Route 53 tự động coi endpoint là unhealthy 
+- Như vậy, bạn đã tạo được Health Check cho tài nguyên private
+-> Dù các health checkers của Route 53 không trực tiếp truy cập được endpoint 
+
