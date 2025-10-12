@@ -1,0 +1,32 @@
+        ### Mục tiêu bài học ###
+- Hiểu rõ Routing Policy kiểu Geolocation trong Amazon Route 53 là gì và cách hoạt động của nó 
+- Phân biệt được Geolocation Routing Policy với Latency-based Routing Policy 
+- Biết cách cấu hình bản ghi theo vị trí địa lý của người dùng: theo châu lục, quốc gia hoặc bang (state)
+- Hiểu cách thiết lập bản ghi mặc định và kiểm tra thực tế với các vùng khác nhau 
+- Nắm được cách khắc phục sự cố (ví dụ: lỗi timeout do thiếu rule HTTP trong Security Group)
+
+# Tổng quan: Geolocation Routing Policy là gì?
+- Là chính sách định tuyến dựa trên vị trí địa lý của người dùng, rất khác với Latency-based Routing Policy 
+- Trong khi Latency-based định tuyến theo độ trễ mạng thấp nhất, Geolocation định tuyến dựa trên nơi người dùng đang thật sự truy cập
+- Cụ thể, bạn có thể định nghĩa:
+    + Người dùng từ một châu lục cụ thể → đi tới IP A.
+    + Người dùng từ một quốc gia cụ thể → đi tới IP B.
+    + Người dùng từ một bang (U.S. state) → đi tới IP C.
+-> Nếu có nhiều mức độ vị trí trùng nhau (châu lục → quốc gia → bang), Route 53 sẽ ưu tiên vị trí chính xác nhất.
+
+# Cần có bản ghi mặc định (Default Record)
+- Vì không phải tất cả người dùng đều thuộc phạm vi mà bạn định nghĩa, nên cần tạo một bản ghi mặc định 
+- Bản ghi này được sử dụng khi không có vị trí nào khớp với người dùng 
+
+# Các trường hợp sử dụng phổ biến 
+- Website localization: Hiển thị website phù hợp với ngôn ngữ vùng miền 
+- Content restriction: Giới hạn nội dung theo vùng (ví dụ: nội dung chỉ cho phép tại Mỹ)
+- Load balancing theo vùng: Phân tải truy cập cho các máy chủ ở từng khu vực 
+-> Các bản ghi Geolocation cũng có thể gắn Health Check để theo dõi tình trạng tài nguyên 
+
+# Ví dụ minh họa: Định tuyến theo châu lục và quốc gia 
+- Hãy tưởng tượng có bản đồ châu Âu với nhiều quốc gia:
+    + Người dùng từ Đức -> đến IP chứa phiên bản tiếng Đức của ứng dụng 
+    + Người dùng từ Pháp -> đến IP chứa phiên bản tiếng Pháp 
+    + Người dùng từ các quốc gia khác-> đến IP mặc định (phiên bản tiếng Anh)
+    
