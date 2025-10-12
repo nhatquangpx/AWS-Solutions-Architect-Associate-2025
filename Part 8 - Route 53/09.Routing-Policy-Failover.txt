@@ -1,0 +1,22 @@
+        ### Mục tiêu bài học ###
+- Hiểu được Failover Routing Policy (chính sách định tuyến dự phòng) trong Amazon Route 53 là gì 
+- Nắm được cách cấu hình Failover trong Route 53 để đảm bảo tính sẵn sàng cao cho hệ thống 
+- Biết cách sử dụng Health Check để Route 53 tự động chuyển hướng (failover) khi một tài nguyên chính (primary) gặp sự cố 
+- Hiểu rõ cơ chế hoạt động, vai trò của primary record, secondary record và health status trong quá trình định tuyến 
+
+# Khái niệm chung 
+- Failover Routing Policy là chính sách định tuyến dự phòng trong Amazon Route 53, được thiết kế nhằm đảm bảo tính sẵn sàng cao cho hệ thống 
+- Nói cách khác, nếu máy chủ chính (Primary) gặp sự cố, Route 53 sẽ tự động chuyển hướng người dùng đến máy chủ dự phòng (secondary)
+- Trong mô hình, chúng ta có:
+    + Route 53 ở giữa (DNS service)
+    + Hai EC2 instances:
+        . Một là Primary Instance 
+        . Một là Secondary Instance (dự phòng hoặc dùng cho Disaster Recovery)
+
+# Cơ chế hoạt động của Failover Policy 
+- Route 53 sẽ liên kết với Health Check để theo dõi tình trạng của Primary Instance
+-> Đây là bắt buộc, bản ghi chính phải có Health Check 
+- Khi người dùng gửi yêu cầu DNS, Route 53 sẽ trả về tài nguyên đang ở trạng thái "healthy"
+    + Nếu Primary Instance vẫn hoạt động tốt -> Route 53 trả về địa chỉ của Primary 
+    + Nếu Health Check phát hiện Primary unhealthy -> Route 53 tự động chuyển sang Secondary Instance
+- Cũng có thể thiết lập Health Check cho Secondary, nhưng chỉ được có một Primary và một Secondary trong Failover Policy 
