@@ -1,0 +1,54 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm và nguyên lý hoạt động của IP-based Routing
+- Biết cách định nghĩa danh sách CIDR để định tuyến dựa trên địa chỉ IP của client 
+- Nắm được các trường hợp sử dụng thực tế của chính sách này
+- Hiểu quy trình hoạt động thông qua ví dụ minh họa
+ 
+# Giới thiệu về IP-based Routing 
+- Là chính sách cho phép định tuyến lưu lượng truy cập dựa trên địa chỉ IP của client - tức là IP của người dùng hoặc thiết bị đang gửi truy vấn DNS 
+- Điều này có nghĩa là:
+    + Khi một người dùng gửi yêu cầu đến Route 53 để truy cập một domain, Route 53 sẽ xem xét địa chỉ IP của người dùng đó. Sau đó dựa trên dải IP (CIDR) mà bạn đã cấu hình sẵn, nó sẽ quyết định người dùng này được định tuyến đến tài nguyên nào 
+    + Nói cách khác: Bạn kiểm soát đích đến của người dùng dựa trên IP của họ 
+
+# Cấu trúc của IP-based Routing trong Route 53 
+- Để triển khai chính sách này, trong Route 53, bạn sẽ phải định nghĩa một danh sách CIDR (Classless Inter-Domain Routing)
+- Đây là dải địa chỉ IP đại diện cho nhóm người dùng hoặc nhà cung cấp dịch vụ Internet (ISP)
+- Ví dụ:
+    + 203.0.113.0/24 có nghĩa là tất cả các IP trong khoảng từ 203.0.113.0 đến 203.0.113.255.
+    + 200.10.0.0/16 bao gồm tất cả IP từ 200.10.0.0 đến 200.10.255.255.
+- Sau đó, bạn gán mỗi CIDR này với một “đích đến” cụ thể, chẳng hạn:
+    + Một máy chủ EC2.
+    + Một Application Load Balancer.
+    + Một IP public nào đó mà bạn sở hữu.
+
+# Các trường hợp sử dụng thực tế 
+- Tối ưu hóa hiệu suất (Optimize Performance): Nếu bạn biết trước dải IP của người dùng (ví dụ từ một công ty, một ISP, hoặc một khu vực mạng cụ thể), bạn có thể định tuyến họ đến tài nguyên gần nhất hoặc mạnh nhất, giúp:
+    + Giảm độ trễ 
+    + Tăng tốc độ truy cập 
+    + Tăng trải nghiệm người dùng 
+- Giảm chi phí mạng (Reduce Network Costs): Nếu bạn biết các IP đến từ khu vực mạng có chi phí cao hơn, bạn có thể định tuyến chúng sang tài nguyên có chi phí thấp hơn 
+- Kiểm soát và tùy chỉnh trải nghiệm theo IP: Nếu một ISP lớn sử dụng một dải IP cụ thể, bạn có thể:
+    + Gửi người dùng của họ đến endpoint riêng biệt (ví dụ: cdn1.example.com) để tối ưu hóa tốc độ 
+    + Hoặc cung cấp nội dung riêng phù hợp với khu vực đó 
+
+# Ví dụ minh họa chi tiết 
+Giả sử muốn cấu hình IP-based routing cho tên miền example.com 
+- B1: Định nghĩa các dải CIDR 
+    Bạn có hai nhóm người dùng
+    | Tên nhóm   | Dải IP (CIDR)    | Ghi chú                 |
+    | ---------- | ---------------- | ----------------------- |
+    | Location 1 | `203.0.113.0/24` | Người dùng thuộc mạng A |
+    | Location 2 | `200.10.0.0/16`  | Người dùng thuộc mạng B |
+- B2: Gán các dải CIDR với tài nguyên tương ứng 
+    + Location 1 -> trỏ đến IP 1.2.3.4
+    + Location 2 -> trỏ đến IP 5.6.7.8 
+- B3: Kết quả hoạt động 
+    + Khi người dùng A gửi truy vấn DNS từ IP nằm trong dải 203.0.113.0/24
+    -> Route 53 sẽ trả về 1.2.3.4
+    + Khi người dùng B có IP thuộc dải 200.10.0.0/16
+    -> Route 53 sẽ trả về 5.6.7.8 
+
+# LƯU Ý KHI SỬ DỤNG 
+- Bạn phải biết rõ các dải IP (CIDR) mà bạn muốn định tuyến — đây không phải là chính sách tự động nhận biết vị trí như Geolocation Routing.
+- Nếu một IP không khớp với bất kỳ CIDR nào, bạn nên tạo một bản ghi mặc định (default record) để tránh lỗi không phản hồi DNS.
+- IP-based Routing hoạt động ở cấp DNS (Route 53), chứ không thay thế firewall hay routing network layer.
