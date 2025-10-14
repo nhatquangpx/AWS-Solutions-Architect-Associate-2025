@@ -1,0 +1,55 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm Geoproximity Routing và mục đích sử dụng 
+- Biết cách AWS định tuyến người dùng dựa trên vị trí địa lý của họ và vị trí tài nguyên 
+- Hiểu rõ cách sử dụng tham số "Bias" để tăng hoặc giảm lưu lượng truy cập đến một vùng cụ thể 
+- Phân biệt Geoproximity Routing với các chính sách khác (như Geolocation)
+- Biết khi nào cần dùng Route 53 Traffic Flow để triển khai chính sách này 
+
+# Giới thiệu về Geoproximity Routing 
+- Geoproximity Routing là một tính năng nâng cao của Amazon Route 53 cho phép bạn định tuyến lưu lượng truy cập đến các tài nguyên dựa trên vị trí địa lý của người dùng và vị trí địa lý của tài nguyên đó 
+- Nói cách khác, Route 53 sẽ xem xét:
+    + Người dùng đang ở đâu 
+    + Tài nguyên (vd EC2 instance, Load Balancer, hay server-on-premise) nằm ở đâu
+    + Từ đó quyết định người dùng sẽ được điều hướng đến tài nguyên nào gần nhất hoặc theo quy tắc bias mà bạn đặt ra 
+
+# Mục đích của Geoproximity Routing 
+- Điều phối lưu lượng truy cập giữa các vùng địa lý khác nhau 
+- Tăng lượng truy cập đến một khu vực cụ thể (ví dụ khi khu vực đó có nhiều tài nguyên mạnh hon hoặc gần hơn)
+- Giảm tải cho một khu vực đang có lượng request quá lớn 
+- Quản lý vùng phủ nội dung toàn cầu (global coverage) một cách linh hoạt 
+
+# Thành phần quan trọng: "Bias" - độ ưu tiên lưu lượng 
+- Bias là một giá trị điều chỉnh lưu lượng truy cập (traffic shifting value)
+- Nó giúp tăng hoặc giảm kích thước vùng địa lý mà tài nguyên sẽ phục vụ người dùng 
+    + Nếu bias tăng (dương) -> vùng ảnh hưởng mở rộng -> nhiều người dùng hơn sẽ được định tuyến đến tài nguyên đó 
+    + Nếu bias giảm (âm) -> vung ảnh hưởng thu hẹp -> ít người dùng hơn sẽ được định tuyến đến tài nguyên đó 
+
+# Các loại tài nguyên có thể sử dụng 
+- Tài nguyên AWS -> Bạn chỉ cần chọn region của tài nguyên đó, AWS sẽ tự động xác định tọa độ địa lý và thực hiện định tuyến phù hợp 
+- Tài nguyên bên ngoài AWS (On-premises data center) -> Bạn phải chỉ định thủ công tọa độ địa lý (latitude & longtitude) để AWS biết vị trí chính xác của tài nguyên 
+
+# Cách sử dụng Geoproximity Routing trong thực tế 
+- Tính năng này chỉ có thể được thiết lập thông qua công cụ nâng cao "Route 53 Traffic Flow" 
+- Traffic Flow cho phép:
+    + Tạo các rule phức tạp
+    + Gắn bias để điều chỉnh vùng ảnh hưởng 
+    + Xem bản đồ trực quan hiển thị cách lưu lượng được phân phối giữa các vùng 
+
+# Minh họa bằng sơ đồ:
+- TH1: Không có Bias 
+    + Giả sử có hai tài nguyên, một ở us-west-1, một ở us-east-1, cả hai đều có bias = 0
+    + Khi người dùng khắp nước Mỹ truy cập:
+        . Route 53 sẽ chia nước Mỹ làm 2 nửa 
+        . Người dùng phía Tây được điều hướng đến us-west-1
+        . Còn lại 
+    -> Đây là cách định tuyến cơ bản, dựa trên vị trí gần nhất, không ưu tiên vùng nào 
+- TH2: Có bias 
+    + Vẫn là hai tài nguyên: us-west-1 có bias = 0, us-east-1 có bias = +50
+    + Vì us-east-1 có bias dương, vùng ảnh hưởng của nó mở rộng ra, đường phân chia giữa hai vùng bây giờ di chuyển về phía Tây 
+    + Kết quả: nhiều người dùng hơn được định tuyến đến us-east-1
+
+# Ứng dụng thực tế 
+- Khi một vùng AWS có hiệu năng cao hơn, bạn muốn tăng lượng truy cập đến đó
+- Khi một vùng đang bảo trì hoặc có sự cố, bạn muốn giảm lượng truy cập tạm thời
+- Khi muốn phân phối người dùng toàn cầu linh hoạt mà không thay đổi cơ sở hạ tầng backend 
+
