@@ -1,0 +1,29 @@
+        ### Mục tiêu bài học ###
+- Hiểu rõ sự khác biệt giữa Domain Registrar và DNS Service 
+- Biết rằng có thể đăng ký tên miền ở bất kỳ nhà đăng ký nào, những vẫn có thể quản lý DNS qua Route 53 
+- Nắm được cách cấu hình để sử dụng Amazon Route 53 làm DNS service ngay cả khi tên miền được mua ở nhà cung cấp khác (GoDaddy, Google Domains...)
+
+# Phân biệt Domain Registrar và DNS service 
+- Domain Registrar (Nhà đăng ký tên miền): Là nơi bạn mua và sở hữu tên miền -> Trả phí hàng năm để duy trì quyền sở hữu tên miền đó 
+- DNS Service: Là nơi bạn quản lý các bản ghi DNS của tên miền (A record, CNAME, MX, TXT...)
+
+# Mua tên miền ở đâu?
+- Có thể mua tên miền từ bất kỳ Domain Registrar nào
+- Ví dụ: Amazon Registrar (trong Route 53), GoDaddy, Google Domains, Namecheap,...
+
+# Dịch vụ DNS khi đăng ký tên miền 
+- Thông thường, khi đăng ký một domain tại một registrar, họ sẽ tự động cung cấp kèm theo một dịch vụ DNS để bản quản lý bản ghi DNS 
+- Ví dụ:
+    + Nếu bạn mua domain tại GoDaddy -> GoDaddy cung cấp trang quản lý DNS 
+    + Nếu bạn mua domain tại Amazon → Amazon cung cấp Route 53 Hosted Zone để bạn quản lý DNS
+-> Tuy nhiên, bạn không bắt buộc phải dùng DNS service của nơi mua domain. Có thể tách riêng việc mua domain và quản lý DNS 
+
+# Các tình huống kết hợp giữa Domain Registrar và DNS Service 
+- TH1: Bạn đăng ký tên miền với Amazon Registrar, và sử dụng luôn Route 53 để quản lý DNS 
+- TH2: Bạn mua domain ở nơi khác (GoDaddy) nhưng vẫn dùng Route 53 của AWS để quản lý DNS records -> Hoàn toàn hợp lệ và thường được sử dụng 
+
+# Tóm tắt quy trình cấu hình để dùng Route 53 với domain mua ở nơi khác 
+1. Tạo một Public Hosted Zone trong Route 53 cho tên miền đó 
+2. Lấy 4 Name Servers (NS records) do Route 53 cung cấp 
+3. Cập nhật NS records trên trang quản lý domain của bên bán (GoDaddy, Google Domains,...)
+4. Từ nay, Route 53 sẽ chịu trách nhiệm quản lý DNS records cho domain đó 
