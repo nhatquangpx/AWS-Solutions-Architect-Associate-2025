@@ -1,0 +1,59 @@
+        ### Mục tiêu bài học ### 
+- Hiểu Route 53 Resolver là gì và nó xử lý truy vấn DNS trong AWS như thế nào 
+- Biết tại sao cần thiết lập hybrid DNS giữa hệ thống on-premises (tại chỗ) và AWS Cloud 
+- Nắm được cách hoạt động của inbound và outbound resolver endpoints để DNS có thể hoạt động 2 chiều 
+
+# Route 53 Resolver là gì?
+- Trong AWS, Route 53 Resolver là thành phần cơ bản được tạo sẵn trong Route 53 khi bạn bắt đầu sử dụng dịch vụ 
+- Resolver chịu trách nhiệm trả lời các truy vấn DNS cho:
+    + Các domain nội bộ (local domain) dùng trong hệ thống EC2 instance 
+    + Các bản ghi trong private hosted zone 
+    + Các bản ghi trong public hosted zone mà bạn tạo trong Route 53 
+-> Bất kỳ bản ghi DNS nào được tạo trong Route 53, Resolver đều có thể resolve chúng trong tài khoản AWS của bạn 
+
+# Vấn đề: Khi cần "Hybrid DNS"
+- Trong nhiều tình huống thực tế, doanh nghiệp không chỉ dùng AWS mà còn có hệ thống riêng tại chỗ (on-premises)
+- Ví dụ:
+    + Bạn có EC2 instance và private hosted zone trong AWS 
+    + Nhưng bạn cũng có máy chủ, cơ sở dữ liệu, DNS riêng trong data center tại công ty 
+- Khi đó, bạn có thể muốn:
+    + Từ hệ thống on-premises -> truy cập tên miền nội bộ của AWS 
+    + Hoặc ngược lại từ AWS cloud -> truy cập tài nguyên on-premises
+-> Đây gọi là Hybrid DNS - tức là 2 hệ thống có thể trao đổi và phân giải DNS lẫn nhau 
+=> Để làm được điều này, AWS cung cấp tính năng gọi là Resolver Endpoint 
+
+# Resolver Endpoint là gì?
+- Là điểm trung gian giúp Route 53 Resolver có thể giao tiếp với DNS resolver bên ngoài AWS 
+- Có 2 loại endpoint chính:
+    | Loại Endpoint         | Mục đích                                                                                                |
+    | --------------------- | ------------------------------------------------------------------------------------------------------- |
+    | **Inbound Endpoint**  | Cho phép **DNS resolver của on-premises** gửi truy vấn DNS vào AWS để phân giải các tên miền trong AWS. |
+    | **Outbound Endpoint** | Cho phép **Route 53 Resolver trong AWS** gửi truy vấn DNS ra ngoài, đến DNS resolver của on-premises.   |
+1. Inbound Endpoint 
+- Giả sử bạn có:
+    + 1 Route 53 Resolver trong AWS Cloud 
+    + 1 EC2 instance cùng với Private Hosted Zone
+    + 1 data center on-premises với DNS riêng 
+- Mục tiêu: Từ on-premises, bạn muốn truy cập các tên miền nội bộ trong AWS 
+- Cách hoạt động:
+    1. Đầu tiên, phải có kết nối mạng giữa AWS và on-premises thông qua VPN hoặc AWS Direct Connect
+    2. Khi một server on-premises gửi truy vấn DNS:
+        + Truy vấn này được gửi đến DNS resolver nội bộ của on-premises
+        + Resolver này được cấu hình để forward truy vấn đến Inbound Resolver Endpoint trong AWS 
+    3. Inbound Resolver Endpoint sẽ chuyển tiếp truy vấn đó đến Route 53 Resolver trong AWS 
+    4. Route 53 Resolver sẽ giải quyết tên miền (vì nó có quyền truy cập các bản ghi trong Private Hosted Zone)
+2. Outbound Endpoint 
+- Ví dụ: EC2 instance trong AWS muốn truy cập web.onpremise.private
+- Cách hoạt động:
+    1. Trong AWS, bạn tạo Outbound Resolver Endpoint 
+    2. Khi EC2 instance trong AWS thực hiện truy vấn DNS cho tên miền web.onpremise.private:
+        + Truy vấn đó được gửi đến Route 53 Resolver trong AWS 
+        + Resolver nhận ra đây là tên miền thuộc on-premises, nên nó sẽ chuyển tiếp truy vấn ra ngoài qua Outbound Endpoint
+    3. Outbound Endpoint sẽ gửi truy vấn đến DNS resolver trong data center on-premises
+    4. Resolver on-premises sẽ phân giải truy vấn và trả về kết quả 
+
+# Tóm tắt quá trình Hybrid DNS hoạt động 2 chiều:
+    | Hướng truy vấn    | Loại Endpoint dùng    | Mô tả                                                                                         |
+    | ----------------- | --------------------- | --------------------------------------------------------------------------------------------- |
+    | On-premises → AWS | **Inbound Endpoint**  | On-premises resolver gửi truy vấn DNS vào AWS để phân giải các bản ghi trong Route 53.        |
+    | AWS → On-premises | **Outbound Endpoint** | Route 53 Resolver gửi truy vấn DNS đến resolver của on-premises để phân giải tên miền nội bộ. |

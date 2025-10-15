@@ -1,0 +1,30 @@
+        ### Mục tiêu bài học ###
+- Hiểu Multi-Value Routing Policy trong Route 53 là gì và khi nào nên sử dụng 
+- Biết cách kết hợp Health Checks để đảm bảo chỉ các tài nguyên "khỏe mạnh" được trả về 
+- Thực hành tạo và kiểm tra Multi-Value Record trong AWS Route 53 
+
+# Giới thiệu về Multi-Value Routing Policy 
+- Chính sách này được sử dụng khi muốn định tuyến lưu lượng truy cập đến nhiều tài nguyên cùng lúc - ví dụ: nhiều máy chủ, nhiều IP hoặc nhiều vùng khác nhau 
+- Khi dùng Multi-Value, Route 53 sẽ trả về nhiều giá trị hoặc nhiều bản ghi tài nguyên cho một truy vấn DNS 
+
+# Kết hợp Health Checks 
+- Một đặc điểm quan trọng của Multi-Value Routing Policy là có thể gắn (associate) mỗi bản ghi với một Health Check trong Route 53
+- Có nghĩa là chỉ những bản ghi có trạng thái "healthy" mới được Route 53 trả về khi người dùng gửi truy vấn DNS 
+- Vì vậy:
+    + Tối đa 8 bản ghi khỏe mạnh sẽ được trả về cho mỗi truy vấn Multi-Value
+    + Nhờ đó, người dùng chỉ nhận được danh sách các tài nguyên đang hoạt động tốt 
+- Lưu ý:
+    + Mặc dù Multi-Value Routing trông giống như một ELB, nhưng thực tế nó không phải là một sự thay thế cho ELB 
+    + Multi-Value hoạt động theo cơ chế "client-side load balancing" - nghĩa là việc chọn tài nguyên nào để truy cập là do client (trình duyệt hoặc ứng dụng) tự quyết định, không phải Route 53
+
+# Ví dụ minh họa 
+- Giả sử bạn có tên miền example.com 
+- Ta sẽ thiết lập nhiều A record (bản ghi dạng địa chỉ IP) cho tên miền này, mỗi bản ghi được gắn với một Health Check riêng 
+- Quá trình hoạt động như sau:
+    1. Khi client gửi truy vấn DNS đến Route 53, Route 53 sẽ trả về tối đa 8 bản ghi IP đang "healthy"
+    2. Client sẽ tự chọn một trong các IP này để gửi yêu cầu truy nhập 
+    3. Vì tất cả IP được trả về đều đã được kiểm tra tình trạng, nên client sẽ luôn kết nối đến một tài nguyên đang hoạt động tốt 
+- So sánh: Nếu dùng Simple Routing Policy với nhiều giá trị, thì:
+    + Không thể gắn Health Check 
+    + Điều này dẫn đến Route 53 có thể trả về cả các IP không hoạt động 
+    
