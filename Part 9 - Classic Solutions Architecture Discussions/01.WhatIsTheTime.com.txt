@@ -1,0 +1,109 @@
+        ### Mục tiêu bài học ###
+- Cách xây dựn một kiến trúc giải pháp AWS (Solution Architecture) từ đơn giản nhất, có khả năng mở rộng, tự động và chịu lỗi cao 
+- Hiểu rõ vai trò và cách hoạt động của các dịch vụ: EC2, Elastic IP, Route 53, Load Balancer, Auto Scaling Group, Multi-AZ, Reserved Instance, Spot Instance 
+- Biết vì sao phải dùng từng dịch vụ trong từng giai đoạn mở rộng hệ thống - một tư duy quan trọng trong kỳ thi AWS SAA 
+- Hình dung tư duy thiết kế theo tiến trình của một Solutions Architect: từ PoC nhỏ -> mở rộng -> tối ưu chi phí -> đảm bảo tính sẵn sàng cao 
+
+GIỚI THIỆU TỔNG QUAN 
+- Từ giờ chúng ta sẽ không còn học từng dịch vụ rời rạc nữa, mà sẽ nhìn thấy cách chúng ghép vào nhau để tạo thành một giải pháp tổng thể 
+- Để dễ hiểu, ta bắt đầu với một ví dụ đơn giản: Trang web WhatIsTheTime.com - nhiệm vụ duy nhất của nó là hiển thị giờ hiện tại cho người dùng 
+- Nghe có vẻ vô nghĩa nhưng chính vì nó đơn giản, nên ta có thể tập trung vào kiến trúc giải pháp thay vì logic nghiệp vụ 
+- Bắt đầu nhỏ rồi từng bước nâng cấp để thấy được tư duy phát triển hệ thống trong AWS 
+
+PHẦN 1: Phiên bản đơn giản nhất - PoC (Proof of Concept)
+1. Kiến trúc ban đầu:
+- Một user truy cập ứng dụng 
+- Ứng dụng chạy trên một EC2 instance loại T2.micro 
+- EC2 trả lời: "It's 5:30 PM" -> xong!
+- Đây là phiên bản đầu tiên của ứng dụng - một bản PoC hoạt động được 
+- Để đảm bảo người dùng có thể luôn truy cập được vào instance này ngay cả khi ta khởi động lại nó, ta cần gắn cho EC2 Elastic IP (EIP) - đây là địa chỉ IP tĩnh giúp IP không thay đổi mỗi lần restart
+=> Kiến thức mới:
+    + Public EC2 instance: có thể truy cập từ Internet 
+    + Elastic IP: IP tĩnh có thể gắn với instance để đảm bảo địa chỉ không đổi 
+    + T2.micro: loại instance nhỏ, giả rẻ, dùng cho test hoặc PoC 
+=> Kết quả: Ứng dụng hoạt động tốt, người dùng truy cập ổn định 
+
+PHẦN 2: Vertical Scaling - Mở rộng theo chiều dọc 
+- Ứng dụng bắt đầu tăng lượng người dùng: Nhiều người dùng cùng hỏi "Mấy giờ rồi?" -> EC2 T2.micro không chịu nổi tải 
+- Giải pháp: nâng cấp máy mạnh hơn (vertical scaling)
+    + Ta dừng instance
+    + Đổi loại instance thành M5.large 
+    + Khởi động lại instance 
+- Vì Elastic IP vẫn giữ nguyên -> người dùng vẫn truy cập bình thường, nhưng trong lúc dừng để nâng cấp thì hệ thống bị downtime 
+=> Khái niệm mới:
+    + Vertical Scaling (scale up): tăng năng lực của 1 máy (CPU, RAM cao hơn)
+    + Downtime: thời gian hệ thống ngừng phục vụ 
+=> Ưu điểm: đơn giản, nhanh
+   Nhược điểm: có downtime, giới hạn tài nguyên phần cứng 
+
+PHẦN 3: Horizontal Scaling - Mở rộng theo chiều ngang 
+- Ứng dụng tiếp tục nổi tiếng -> nhiều người hơn nữa truy cập 
+- Giải pháp mới: thêm nhiều EC2 để chia tải 
+- Kiến trúc:
+    + 3 EC2 instance (loại M5.large)
+    + Mỗi instance có Elastic IP riêng 
+- Nhưng vấn đề là:  
+    + Người dùng phải biết địa chỉ IP cụ thể của từng instance để truy cập 
+    + Không thực tế khi có nhiều IP 
+=> Khái niệm mới: 
+    + Horizontal scaling: thêm nhiều máy chạy song song để xử lí tải 
+    + Giới hạn Elastic IP: AWS chỉ cho tối đa 5 EIP mỗi region mỗi account 
+=> Kết luận: Mở rộng được, nhưng quản lý thủ công, phức tạp 
+
+PHẦN 4: Route 53 - Quản lý DNS 
+- Để tránh việc người dùng phải nhớ IP, ta dùng Amazon Route 53
+- Cách làm:
+    + Tạo tên miền: api.whatisthetime.com
+    + Tạo A record trỏ tới danh sách các IP EC2 (TTL = 1 giờ)
+=> Kiến thức chính:
+    + A record: ánh xạ domain -> danh sách địa chỉ IP 
+    + TTL: thời gian bộ nhớ cache DNS được giữ trước khi cập nhật IP mới 
+=> Ưu điểm: người dùng chỉ cần nhớ tên miền
+   Nhược điểm: nếu EC2 bị xóa, nhưng TTL chưa hết hạn (1 giờ), người dùng vẫn truy cập IP cũ -> lỗi 
+
+PHẦN 5: Dùng Load Balancer - Cân bằng tải và tăng độ tin cậy 
+- Giải pháp: 
+    + Tạo ELB để đứng trước EC2
+    + ELB nhận yêu cầu từ người dùng rồi phân phối tải đến các EC2 backend 
+- Cấu hình:
+    + EC2 instances: private, chỉ cho phép ELB truy cập (bảo mật hơn)
+    + ELB: public-facing, có IP động (thay đổi thường xuyên)
+    + Trong Route 53, ta không thể dùng A record mà dùng Alias Record để trỏ domain đến ELB 
+=> Kiến thức trọng tâm:
+    + Alias Record: loại bản ghi đặc biệt của Route 53 dùng để trỏ tới AWS resources như ELB, S3, CloudFront 
+    + Health Check: ELB chỉ gửi traffic đến các instance healthy
+=> Kết quả:
+    + Cân bằng tải giữa các EC2
+    + Tự động bỏ qua instance lỗi 
+    + Không cần quản lý IP nữa 
+
+PHẦN 6: Auto Scaling Group - Tự động thêm/bớt EC2 
+- Việc thêm hoặc xóa EC2 thủ công tốn thời gian -> ta tự động hóa bằng Auto Scaling Group (ASG)
+- Cấu trúc:
+    + Route 53 -> ELB -> Auto Scaling Group -> nhiều EC2 private 
+    + ASG tự động scale:
+        . Scale out: thêm EC2 khi tải tăng 
+        . Scale in: giảm EC2 khi tải giảm 
+=> Kiến thức chính:
+    + ASG: nhóm EC2 tự động mở rộng hoặc thu nhỏ dựa trên demand (ví dụ: CPU utilization)
+    + Không downtime, vì ELB + health check đảm bảo chỉ instance hoạt động tốt mới nhận request 
+
+PHẦN 7: Multi-AZ - Tăng khả năng chịu lỗi
+- Khi chỉ có 1 Availability Zone (AZ) -> nếu vùng đó bị sự cố (bị động đất) -> toàn bộ ứng dụng ngừng hoạt động 
+- Giải pháp: triển khai Multi-AZ 
+- Kiến trúc:
+    + ELB hoạt động trên nhiều AZ (ví dụ: AZ1, AZ2, AZ3)
+    + ASG cũng được cấu hình phân tán EC2 qua nhiều AZ (VD: 2 instance ở AZ1, 2 ở AZ2, 1 ở AZ3)
+    -> Nếu 1 AZ gặp sự cố -> ứng dụng vẫn chạy bình thường trên các AZ còn lại 
+=> Khái niệm chính: Multi-AZ triển khai cùng dịch vụ trên nhiều AZ để tăng độ bền, giảm downtime 
+
+PHẦN 8: Tối ưu chi phí - Reserved Instance & Spot Instance 
+- Khi hệ thống đã ổn định, ta biết chăc rằng luôn có ít nhất 2 instance chạy 24/7 (tối thiểu để đảm bảo sẵn sàng)
+-> Ta có thể dự trữ (reserve) 2 instance này để giảm chi phí dài hạn 
+- Các instance khác đùng dể scale tạm thời -> dùng loại:
+    + On-demand: trả tiền theo giờ, linh hoạt 
+    + Spot Instance: rẻ hơn nhiều, nhưng có thể bị dừng bất ngờ (vì AWS thu hồi tài nguyên)
+=> Kiến thức chính: 
+    + Reserved Instance: tiết kiệm chi phí cho workload ổn định 
+    + Spot Instance: tiết kiệm hơn nữa cho workload linh hoạt, chấp nhận ngừng đột ngột 
+    
