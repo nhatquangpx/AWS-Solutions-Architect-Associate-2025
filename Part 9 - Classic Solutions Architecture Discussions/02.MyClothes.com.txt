@@ -1,0 +1,124 @@
+        ### Mục tiêu bài học ###
+- Sự khác biệt giữa ứng dụng web stateless (vd: WhatIsTheTime.com) và stateful (vd: MyClothes.com)
+- Các vấn đề gặp phải khi người dùng có session hoặc giỏ hàng (shopping cart) nhưng ứng dụng web lại hoạt động theo kiểu stateless 
+- Cách giải quyết vấn đề đó bằng:   
+    + ELB stickiness (session affinity)
+    + Cookies của người dùng (client-side storage)
+    + Server-side session với ElastiCache hoặc DynamoDB
+- Tích hợp thêm RDS để lưu trữ dữ liệu người dùng (như địa chỉ, thông tin cá nhân)
+- Tối ưu hóa hiệu suất đọc dữ liệu bằng RDS Read Replicas và ElastiCache caching
+- Triển khai Multi-AZ để tăng tính sẵn sàng và khả năng chịu lỗi 
+- Thiết lập Security Groups hợp lý cho từng tầng của hệ thống 
+- Tổng hợp kiến trúc web 3 tầng (three-tier architecture): client, web, database
+
+1. Ứng dụng Stateless - WhatIsTheTime.com
+- Trước đó, ta đã học về ứng dụng stateless WhatIsTheTime.com chỉ đơn giản trả lời Bây giờ là mấy giờ
+- Ứng dụng này không cần cơ sở dữ liệu hay thông tin bên ngoài
+- Mỗi request là độc lập - server không cần biết người dùng trước đó đã làm gì 
+
+2. Ứng dụng Stateful - MyClothes.com 
+- Giờ ta bước sang ứng dụng có trạng thái - MyClothes.com - một website bán quần áo trực tiếp 
+- Tình huống:
+    + Người dùng có thể thêm sản phầm vào giỏ hàng (shopping cart)
+    + Có hàng trăm người dùng cùng truy cập 
+    + Ta muốn hệ thống có thể mở rộng theo chiều ngang (horizontal scalability)
+    + Nhưng vẫn muốn tầng web (web tier) càng "stateles" càng tốt 
+- Vấn đề: Nếu web tier là stateless mà người dùng lại có giỏ hàng thì:
+    + Khi request đầu tiên đến Instance A -> giỏ hàng được tạo ở đó 
+    + Request thứ hai lại đến Instance B -> giỏ hàng biến mất 
+    + Người dùng sẽ nghĩ website lỗi, không mua hàng nữa -> mất doanh thu 
+
+3. Giải pháp 1: ELB Stickiness (Session Affinity)
+- Ý tưởng: Sử dụng tính năng "stickiness" của ELB để giữ người dùng gắn liền với cùng một EC2 instance trong suốt phiên làm việc 
+- Cách hoạt động: 
+    + Người dùng lần đầu vào website -> được gán với instance A 
+    + Các request tiếp theo -> luôn được gửi đến cùng instance A 
+    + Nhờ đó, giỏ hàng không bị mất 
+- Hạn chế:
+    + Nếu instance A bị terminate hoặc lỗi, ta vẫn mất giỏ hàng 
+    + Tức là chỉ "đỡ hơn", nhưng chưa phải giải pháp hoàn hảo 
+
+4. Giải pháp 2: Lưu giỏ hàng bằng Cookies (Client-side)
+- Ý tưởng: Thay vì lưu thông tin giỏ hàng ở server, hãy để người dùng tự lưu nó trong trình duyệt - thông qua web cookies 
+- Quy trình:
+    + Mỗi lần người dùng gửi request, cookie gửi kèm nội dung giỏ hàng 
+    + Dù load balancer gửi đến instance nào, server đều biết được giỏ hàng hiện tại 
+    + Nhờ vậy, ứng dụng trở nên stateless - vì server không cần lưu thông tin phiên 
+- Ưu điểm:
+    + Mở rộng dễ dàng (scalable): EC2 instances không cần chia sẻ dữ liệu 
+    + Mỗi request có đủ thông tin cần thiết 
+- Nhược điểm:
+    + Dung lượng cookie giới hạn (tối đa 4KB)
+    + Mỗi request trở nên nặng hơn vì chứa dữ liệu giỏ hàng 
+    + Rủi ro bảo mật: cookie có thể bị sửa đổi bởi attacker -> Phải xác thực nội dung cookie tại EC2 instance để đảm bảo an toàn 
+
+5. Giải pháp 3: Server Session với ElastiCache 
+- Ý tưởng: Chỉ gửi Session ID về client, còn toàn bộ dữ liệu giỏ hàng được lưu phía server (ElastiCache)
+- Quy trình: 
+    + Người dùng gửi request -> được gán một Session ID
+    + EC2 lưu thông tin giỏ hàng vào ElastiCache với khóa là Session ID 
+    + Request sau đi đến instance khác -> instance đó truy xuất dữ liệu từ ElastiCache với Session ID -> giỏ hàng vẫn còn nguyên vẹn 
+- Ưu điểm:
+    + Tốc độ cực nhanh (ElastiCache có độ trễ dưới 1ms)
+    + Bảo mật hơn: attacker không thể can thiệp dữ liệu trong cache 
+    + Hệ thống stateless, hiệu năng cao và an toàn 
+- Ghi chú:
+    + ElastiCache hỗ trợ Multi-AZ (với Redis)
+    + Ngoài ra có thể dùng DynamoDB thay cho ElastiCache để lưu session 
+
+6. Lưu dữ liệu người dùng lâu dài với RDS 
+- Các dữ liệu như địa chỉ, tên, email,... cần lưu bền vững 
+- Khi người dùng cập nhật thông tin: EC2 instance sẽ ghi dữ liệu vào RDS (Relational Database Service)
+- Mọi EC2 instance có thể truy cập RDS
+- RDS đảm bảo lưu trữ lâu dài, độ bền cao, Multi-AZ sẵn sàng 
+
+7. Tối ưu hóa đọc dữ liệu (Scaling Reads)
+- Khi website lớn hơn, đa số thao tác là đọc (read) - vd: xem sản phẩm 
+- Hai cách mở rộng đọc:
+a. RDS Read Replicas
+- Dữ liệu được nhân bản từ RDS chính sang các Read Replica 
+- Có thể có tới 15 bản sao 
+- Tăng khả năng xử lý các yêu cầu đọc 
+b. Cache đọc (Lazy Loading) với ElastiCache
+- Khi EC2 cần dữ liệu:
+    + Kiểm tra ElastiCache: nếu không có, đọc từ RDS rồi ghi lại cache 
+    + Lần sau, các EC2 khác chỉ cần đọc từ cache (rất nhanh)
+- Giảm tải RDS, tiết kiệm CPU, tăng tốc phản hồi 
+- Nhưng cần quản lý cache cẩn thận phía ứng dụng 
+
+8. Đảm bảo sẵn sàng cao - Multi-AZ 
+- Multi-AZ cho toàn hệ thống 
+- Route 53: tự động, luôn sẵn sàng (HA by default)
+- ELB: Multi-AZ load balancing 
+- Auto Scaling Group: chạy ở nhiều AZ 
+- RDS: có standby replica - tự động failover khi AZ gặp sự cố 
+- ElastiCache (Redis): hỗ trợ Multi-AZ replication 
+
+9. Tăng cường bảo mật với Security Groups
+- ALB (Application Load Balancer): mở cổng HTTP/HTTPS cho toàn bộ Internet 
+- EC2 instances: chỉ chấp nhận traffic từ security group của ALB 
+- ElastiCache: chỉ nhận traffic từ EC2 security group 
+- RDS: chỉ cho phép EC2 security group truy cập 
+-> Đây là mô hình bảo mật chặt chẽ, phân tầng và kiểm soát luồng truy cập hợp lý 
+
+10. Tổng kết kiến trúc MyClothes.com 
+| Thành phần               | Mục đích chính                                  |
+| ------------------------ | ----------------------------------------------- |
+| ELB Stickiness           | Giữ người dùng trên cùng instance               |
+| Cookies                  | Giúp ứng dụng stateless nhưng có rủi ro bảo mật |
+| Session ID + ElastiCache | Giải pháp tốt nhất: stateless, nhanh, an toàn   |
+| RDS                      | Lưu dữ liệu người dùng dài hạn                  |
+| RDS Read Replica         | Mở rộng khả năng đọc                            |
+| ElastiCache (Caching)    | Giảm tải RDS, tăng tốc phản hồi                 |
+| Multi-AZ                 | Chịu lỗi cao, hoạt động liên tục                |
+| Security Groups          | Kiểm soát truy cập giữa các tầng                |
+=> Đây là kiến trúc 3 tầng chuẩn:
+    1. Client tier: người dùng, trình duyệt
+    2. Web tier: EC2, ELB, Auto Scaling 
+    3. Database tier: ElastiCache, RDS 
+
+11. Vấn đề chi phí & lựa chọn 
+- Multi-AZ -> tốn thêm chi phí nhưng đảm bảo uptime 
+- Read Replicas -> tốn chi phí lưu trữ nhưng tăng hiệu suất đọc 
+- ElastiCache -> tốn RAM nhưng giảm tải database 
+=> Mỗi lựa chọn là một trade-off giữa hiệu năng - chi phí - độ tin cậy. Đó chính là tư duy kiến trúc giải pháp (Solution Architecture) trong AWS 
