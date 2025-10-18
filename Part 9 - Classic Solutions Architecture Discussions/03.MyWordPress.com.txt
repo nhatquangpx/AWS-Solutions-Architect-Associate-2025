@@ -1,0 +1,65 @@
+        ### Mục tiêu bài học ###
+- Kiến trúc triển khai WordPress trên AWS - bao gồm các thành phần chính như EC2, RDS, EFS 
+- Sự khác biệt giữa EBS và EFS, khi nào nên dùng mỗi loại 
+- Tại sao Aurora MySQL lại được ưa chuộng hơn RDS MySQL thông thường 
+- Cách mở rộng một ứng dụng web stateful để hoạt động trên nhiều AZ mà vẫn đảm bảo dữ liệu đồng bộ 
+- Cân nhắc chi phí giữa các giải pháp lưu trữ (EBS rẻ hơn EFS, nhưng EFS linh hoạt hơn)
+
+1. Giới thiệu tổng quan 
+- Ta xây dựng một website WordPress đặt tên là MyWordPress.com 
+- WordPress là một nền tảng phổ biến để tạo website hoặc blog. Người dùng có thể sử dụng dịch vụ WordPress được host sẵn, nhưng nhiều người thích tự triển khai trên AWS để có:
+    + Toàn quyền kiểm soát 
+    + Hiệu suất cao hơn 
+    + Khả năng mở rộng linh hoạt 
+
+2. Kiến trúc tổng thể 
+- Một trang WordPress thường có:
+    + Tầng ứng dụng (Application Layer): Chạy WordPress trên EC2 instances 
+    + Tầng cơ sở dữ liệu (Database Layer): Lưu nội dung bài viết, người dùng, cài đặt,... bằng MySQL hoặc Aurora MySQL 
+    + Tầng lưu trữ (Storage Layer): Lưu các file media như ảnh, video - đây là nơi ta cần quyết định giữa EBS và EFS 
+
+3. Database Layer - RDS và Aurora 
+- Thông thường, người ta triển khai RDS MySQL ở backend, chạy ở chế độ Multi-AZ để đảm bảo:
+    + Dự phòng (redundancy): Nếu một AZ bị lỗi, AZ khác vẫn hoạt động
+    + Tự động sao lưu và khôi phục 
+- Tuy nhiên, với yêu cầu mở rộng cao hơn, ta có thể chuyển sang Amazon Aurora MySQL. Aurora có những điểm mạnh:
+    + Multi-AZ mặc định, không cần cấu hình phức tạp 
+    + Read Replicas để chia tải đọc (tăng tốc độ phản hồi cho người dùng)
+    + Global Database: Có thể nhân bản dữ liệu đến nhiều khu vực trên toàn cầu 
+    + Ít phải quản lý (less operations) hơn RDS thông thường - vì Aurora được AWS tối ưu hóa hoàn toàn 
+=> Tóm lại: Nếu chỉ cần cơ bản, RDS MySQL lả đủ 
+   Nhưng nếu bạn muốn mở rộng quy mô toàn cầu, hiệu năng cao, Aurora là lựa chọn tốt hơn 
+
+4. Storage Layer - EBS và EFS 
+***ĐÂY LÀ PHẦN RẤT QUAN TRỌNG KHI TRIỂN KHAI WORDPRES***
+TÌNH HUỐNG 1: Chạy 1 EC2 instance duy nhất
+- Giả sử bạn chỉ có một EC2 instance và gắn kèm một EBS volume
+- Khi người dùng tải ảnh lên website:
+    + Ảnh sẽ được lưu trực tiếp vào EBS volume của instance đó 
+    + Khi website đọc ảnh, nó đọc lại từ cùng ổ EBS đó -> hoạt động rất tốt 
+=> Tốt cho môi trường nhỏ, một máy chủ đơn 
+TÌNH HUỐNG 2: Chạy nhiều EC2 instance (multi-AZ)
+- Giả sử bạn mở rộng ứng dụng, có 2 EC2 instance ở 2 AZ khác nhau, mỗi máy đều có EBS riêng (EBS không chia sẻ giữa các AZ)
+- Khi người dùng upload ảnh lên instance A, ảnh sẽ nằm trên EBS của A 
+- Nếu sau đó người dùng được điều hướng bằng load balancer đến instance B 
+-> B sẽ không thấy được ảnh đó, vì EBS của B không chứa cùng dữ liệu 
+=> Hậu quả: ảnh bị "mất" trên giao diện, dữ liệu không nhất quán 
+=> Giải pháp: Dùng Amazon EFS 
+- Ta khắc phục bằng cách dùng EFS, một Network File System (NFS) được AWS quản lý hoàn toàn 
+- Cách hoạt động:
+    + EFS tạo ra Elastic Network Interfaces (ENIs) trong mỗi AZ 
+    + Tất cả các EC2 instances trong các AZ khác nhau có thể truy cập chung cùng một EFS qua ENI 
+    + Bất kỳ file nào (như ảnh tải lên) được lưu trong EFS sẽ ngay lập tức khả dụng với tất cả các instance khác 
+- Lợi ích:
+    + Chia sẻ dữ liệu giữ nhiều EC2 instance 
+    + Tự động mở rộng dung lượng (scale storage tự động theo nhu cầu)
+    + Độ sẵn sàng cao (high availability) vì được thiết kế Multi-AZ 
+
+5. Cân nhắc chi phí
+| Dịch vụ | Ưu điểm                                                        | Nhược điểm                          | Chi phí      |
+| ------- | -------------------------------------------------------------- | ----------------------------------- | ------------ |
+| **EBS** | Rẻ, hiệu năng cao, gắn trực tiếp vào instance                  | Không chia sẻ giữa AZ hoặc instance |  Thấp        |
+| **EFS** | Dữ liệu chia sẻ được giữa nhiều EC2, Multi-AZ, tự động mở rộng | Giá cao hơn                         |  Cao hơn EBS |
+
+
+
