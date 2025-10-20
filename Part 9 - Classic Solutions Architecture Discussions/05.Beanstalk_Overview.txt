@@ -1,0 +1,116 @@
+        ### Mục tiêu bài học ###
+- Hiểu được Elastic Beanstalk là gì và vì sao nó quan trọng 
+- Nắm rõ các thành phần cấu trúc của Elastic Beanstalk (Application, Environment, Version, Tier)
+- Biết quy trình triển khai, cập nhật và quản lý vòng đời ứng dụng với Beanstalk 
+- Hiểu sự khác nhau giữa Web Server Environment Tier và Worker Environment Tier 
+- Phân biệt hai chế độ triển khai: Single Instance và High Availability
+- Biết được Beanstalk tích hợp các dịch vụ AWS khác như EC2, ELB, ASG, RDS, SQS như thế nào 
+
+1. Vấn đề trước khi có Elastic Beanstalk 
+- Trước giờ, khi triển khai một ứng dụng web trên AWS, kiến trúc cơ bản mà ta dùng là:
+    + Một ELB nhận request từ người dùng 
+    + Một ASG quản lý nhiều EC2 instance nằm ở nhiều AZ khác nhau 
+    + Ở tầng backend, có RDS database để xử lý thao tác đọc/ghi dữ liệu. Có thể read replicas để giảm tải 
+    + Ngoài ra nếu có tầng cache, có thể dùng ElastiCache 
+- Tuy nhiên vấn đề là:
+    + Mỗi lần triển khai ứng dụng mới, ta phải tự tạo và cấu hình lại tất cả EC2, ASG, ELB, RDS, bảo mật, scaling,...
+    + Với lập trình viên, điều này phức tạp và tốn thời gian 
+    + Nhà phát triển chỉ muốn code chạy, không muốn lo về hạ tầng 
+
+2. Elastic Beanstalk - Giải pháp cho nhà phát triển 
+- Elastic Beanstalk ra đời để đơn giản hóa việc triển khai ứng dụng cho developer 
+- Mục tiêu: Giúp lập trình viên triển khai ứng dụng mà không cần lo lắng về hạ tầng 
+- Elastic Beanstalk cung cấp giao diện quản lý tập trung, cho phép triển khai ứng dụng chỉ với vài cú nhấp chuột hoặc lệnh CLI 
+- Dịch vụ này tái sử dụng các thành phần đã học (EC2, ASG, Load Balancer, RDS,...) nhưng Beanstalk tự động hóa việc cấu hình và quản lý tất cả 
+- Beanstalk sẽ tự động:
+    + Cấp phát tài nguyên (capacity provisioning)
+    + Cấu hình Load Balancer 
+    + Thiết lập Scaling Policy (tự động tăng/giảm EC2)
+    + Theo dõi tình trạng úng dụng (application health monitoring)
+    + Quản lý vòng đời EC2 instances và cấu hình môi trường 
+-> Việc duy nhất mà lập trình viên cần làm là đưa code lên 
+   Dù vậy, dev vẫn có quyền can thiệp cấu hình chi tiết nếu cần 
+
+3. Chi phí của Elastic Beanstalk
+- Elastic Beanstalk miễn phí sử dụng dịch vụ quản lý
+- Tuy nhiên, vẫn phải trả tiền cho các tài nguyên bên dưới:
+    + EC2 instances
+    + ASG
+    + ELB 
+    + RDS...
+Tức là Beanstalk chỉ đóng vai trò điều phối, còn chi phí đến từ tài nguyên AWS mà nó tạo ra 
+
+4. Các thành phần của Elastic Beanstalk
+- Elastic Beanstalk có 3 khái niệm cốt lõi là:
+(4.1) Application
+    + Là tập hợp tổng thể các thành phần trong Beanstalk: gồm environments, versions, configurations
+    + Ví dụ: Ứng dụng "E-Commerce Website" có thể chứa 3 môi trường (dev, test, prod)
+(4.2) Application Version 
+    + Là một bản cụ thể của mã nguồn ứng dụng 
+    + Mỗi lần cập nhật code, là một version mới 
+    + Ví dụ: Version 1 - Code lần đầu; Version 2 - Cập nhật tính năng giỏ hàng; Version 3 - Fix lỗi bảo mật
+    + Mỗi environment chỉ chạy một phiên bản tại 1 thời điểm nhưng có thể update version trong cùng environment bất cứ lúc nào 
+(4.3) Environment
+    + Là tập hợp các tài nguyên AWS đang chạy một phiên bản ứng dụng cụ thể 
+    + Ví dụ: Environment "Production" chạy Version 3, Environment "Test" chạy Version 2 
+    + Mỗi environment gồm:
+        . EC2 instances 
+        . Load Balancer
+        . ASG 
+        . Có thể có RDS Database
+    + Ta có thể tạo nhiều environment cho cùng một ứng dụng:
+        . dev (phát triển)
+        . test (kiểm thử)
+        . prod (sản xuất)
+(4.4) Quy trình triển khai ứng dụng với Beanstalk
+(1) Tạo Application
+(2) Upload Application Version (mã nguồn)
+(3) Launch Environment
+(4) Quản lý vòng đời Environment
+(5) Khi có thay đổi, upload version mới, rồi deploy vào môi trường 
+=> Quy trình này giúp cập nhật ứng dụng liên tục mà không cần tái tạo hạ tầng 
+
+5. Các ngôn ngữ và nền tảng mà Beanstalk hỗ trợ 
+- Elastic Beanstalk hỗ trợ rất nhiều ngôn ngữ và môi trường: 
+    + Go, Java SE, Java with Tomcat, .NET Core on Linux, .NET on Windows Server 
+    + Node.js, PHP, Python, Ruby, Packer Builder, Single Docker Container
+    + Multi Docker Container, Pre-configured Docker 
+=> Beanstalk có thể triển khai gần như bất kỳ ứng dụng nào 
+
+6. Các loại môi trường (Tiers) trong Beanstalk
+- Có 2 loại môi trường chính (Tiers):
+(6.1) Web Server Environment Tier
+- Đây là kiến trúc truyền thống:
+    + Có Load Balancer nhận request từ người dùng 
+    + Phân phối đến ASG chứa nhiều EC2 instance - nơi chạy web server 
+-> Phù hợp cho các ứng dụng web xử lý trực tiếp yêu cầu từ client 
+(6.2) Worker Environment Tier 
+- Không có client truy cập trực tiếp 
+- Thay vào đó, SQS Queue được dùng làm hàng đợi tin nhắn 
+- EC2 instances trong môi trường này sẽ là worker, chúng nhận và xử lý các message từ SQS queue 
+- Việc tự động scale dựa trên số lượng message trong queue:
+    + Nhiều message -> tăng EC2 instance
+    + Ngược lại 
+-> Mô hình này cực kỳ hữu ích cho xử lý nền (background processing) như:
+    + Gửi email hàng loạt 
+    + Xử lý ảnh, video 
+    + Chạy batch jobs 
+*** Kết hợp cả hai môi trường 
+- Ta có thể kết hợp cả web tier và worker tier:
+    + Web environment nhận request người dùng, sau đó đưa message vào SQS queue 
+    + Worker environment nhận message và xử lý công việc phía sau 
+-> Đây là kiến trúc mạnh mẽ, mở rộng và tách biệt workload hợp lí 
+
+7. Chế độ triển khai (Deployment Modes)
+- Hỗ trợ 2 chế độ triển khai chính:
+(7.1) Single Instance Environment 
+- Chỉ có một EC2 instance duy nhất 
+- Instance này có thể có Elastic IP và RDS database 
+- Phù hợp cho mục đích phát triển hoặc thử nghiệm 
+- Không có tính sẵn sàng cao 
+(7.2) High Availability Environment
+- Dành cho production 
+- Có Load Balancer phân phối request đến nhiều EC2 instance 
+- Các instance này nằm trong ASG và nhiều AZ 
+- Có thể kèm theo RDS database dạng Multi-AZ (master + standby)
+-> Cung cấp khả năng chịu lỗi và mở rộng cao cho môi trường prod 
