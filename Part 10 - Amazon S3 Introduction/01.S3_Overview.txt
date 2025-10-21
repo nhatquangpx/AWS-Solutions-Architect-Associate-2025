@@ -1,0 +1,73 @@
+        ### Mục tiêu bài học ###
+- Hiểu rõ Amazon S3 là gì và tại sao nó quan trọng trong AWS 
+- Nắm được các trường hợp sử dụng thực tế của S3 
+- Biết cấu trúc lưu trữ dữ liệu trong S3: bucket, object, key và naming convention 
+- Hiểu nguyên tắc upload dữ liệu, giới hạn kích thước và metadata/tagging/versioning của object 
+
+1. Giới thiệu tổng quan về Amazon S3
+- S3 (Simple Storage Service) là dịch vụ lưu trữ đối tượng (object storage) cực kỳ phổ biến của AWS 
+- Nó được quảng cáo là có khả năng mở rộng vô hạn (infinitely scalable) - nghĩa là có thể lưu trữ dữ liệu bao nhiêu tùy thích, không lo hết dung lượng 
+-> Rất nhiều website và dịch vụ trên Internet hiện nay phụ thuộc vào S3 
+- Ví dụ:
+    + Nhiều trang web dùng S3 làm backbone để lưu trữ nội dung tĩnh như ảnh, video, tài liệu 
+    + Rất nhiều dịch vụ AWS khác cũng tích hợp với S3 để lưu log, dữ liệu, backup,...
+-> Vì vậy, S3 là một "building block" cốt lõi trong kiến trúc AWS - hầu như mọi hệ thống đều dùng nó ở một mức độ nào đó 
+
+2. Usecases của Amazon S3 
+- Do bản chất là dịch vụ lưu trữ, S3 có rất nhiều ứng dụng trong thực tế:
+| Mục đích                           | Mô tả                                                                                          |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **Backup và Storage**              | Lưu trữ file, ổ đĩa, dữ liệu quan trọng.                                                       |
+| **Disaster Recovery**              | Dùng để sao lưu dữ liệu sang vùng (region) khác, phòng trường hợp vùng chính bị sự cố.         |
+| **Archival Storage**               | Lưu trữ lâu dài (archive) với chi phí cực rẻ, có thể truy xuất lại sau.                        |
+| **Hybrid Cloud Storage**           | Kết hợp giữa lưu trữ on-premises và cloud (ví dụ, mở rộng dung lượng hệ thống nội bộ bằng S3). |
+| **Hosting ứng dụng / media**       | Lưu trữ và phân phối file ảnh, video, âm thanh,...                                             |
+| **Data Lake & Big Data Analytics** | Lưu trữ lượng dữ liệu khổng lồ để phân tích với các công cụ Big Data.                          |
+| **Phân phối cập nhật phần mềm**    | Lưu và cung cấp các bản update ứng dụng, firmware.                                             |
+| **Hosting static website**         | Dùng S3 để host các website tĩnh (HTML, CSS, JS).                                              |
+- Ví dụ thực tế:
+    + Nasdaq lưu trữ 7 năm dữ liệu trên S3 Glacier (dịch vụ lưu trữ dạng archive của S3)
+    + Sysco sử dụng S3 để chạy phân tích dữ liệu, từ đó rút ra các insight kinh doanh 
+
+3. Cấu trúc lưu trữ trong Amazon S3
+- Amazon lưu trữ theo cấu trúc Bucket -> Object 
+- Bucket:   
+    + Bucket là đơn vị lưu trữ cấp cao nhất, có thể xem như thư mục gốc (top-level directory)
+    + Các file (object) sẽ nằm trong bucket 
+    + Mỗi bucket được tạo trong tài khoản AWS 
+- Yêu cầu về tên Bucket: Tên bucket phải toàn cầu duy nhất (globally unique), duy nhất trên toàn bộ AWS 
+- Bucket thuộc về region:
+    + Mặc dù tên là global nhưng mỗi bucket được định nghĩa trong một AWS region cụ thể 
+    + Đây là lỗi phổ biến của người mới: tưởng bucket là global nhưng thực chất nó nằm trong region cụ thể
+
+4. Quy tắc đặt tên Bucket 
+- Không được chứa ký tự chữ in hoa hoặc dấu gạch dưới 
+- Chiều dài: 3-63 ký tự 
+- Không được đặt theo dạng địa chỉ IP 
+- Phải bắt đầu bằng chữ thường hoặc số 
+- Chỉ nên dùng chữ cái, số và dấu gạch ngang 
+
+5. Object - Đơn vị lưu trữ dữ liệu trong S3 
+- Object là một tệp dữ liệu (file) được lưu trong bucket 
+- Mỗi object có key - chính là đường dẫn đầy đủ của file (full path)
+- Khi đó key được chia thành: vd Key = folder1/another-folder/myfile.txt
+    + Prefix: folder1/another-folder
+    + Object name: myfile.txt 
+- LƯU Ý: Amazon S3 không thực sự có thư mục (directory)
+Tất cả chỉ là key có chứa dấu "/" - giao diện console chỉ hiển thị giả lập dạng thư mục cho dễ nhìn 
+
+6. Cấu trúc của một Object 
+- Mỗi object trong S3 gồm:
+| Thành phần       | Mô tả                                                                                   |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| **Key**          | Đường dẫn định danh duy nhất của object.                                                |
+| **Value (Body)** | Nội dung thực tế của file.                                                              |
+| **Metadata**     | Cặp khóa–giá trị mô tả thêm thông tin về file (có thể do hệ thống hoặc người dùng đặt). |
+| **Tags**         | Tối đa 10 cặp key–value dùng cho bảo mật, quản lý vòng đời (lifecycle), v.v.            |
+| **Version ID**   | Có khi bật tính năng versioning, mỗi object có version ID riêng.                        |
+
+7. Giới hạn kích thước và cơ chế upload 
+- Kích thước tối đa của một object: 5 TB
+- Tuy nhiên, nếu file > 5GB, phải sử dụng Multipart Upload - tức là upload file theo nhiều phần nhỏ 
+- Ví dụ: File có kích thước 5 TB -> cần ít nhất 1000 phần, mỗi phần ~5GB
+AWS sau đó sẽ ghép lại các phần để tạo thành một object hoàn chỉnh 
