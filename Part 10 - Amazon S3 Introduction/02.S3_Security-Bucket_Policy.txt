@@ -1,0 +1,105 @@
+        ### Mục tiêu bài học ### 
+- Hiểu rõ hai loại mô hình bảo mật chính trong S3: User-based và Resource-based 
+- Nắm được cấu trúc của S3 Bucket Policy (chính sách tài nguyên) - cách hoạt động, cú pháp JSON, ví dụ cụ thể 
+- Biết cách thiết lập quyền truy cập khác nhau:
+    + Cho người dùng trong cùng tài khoản 
+    + Cho người dùng ở tài khoản khác (cross-account)
+    + Cho truy cập công khai 
+    + Cho EC2 instance 
+- Hiểu cơ chế "Block Public Access" và mục đích bảo vệ chống rò rỉ dữ liệu 
+- Nắm thêm khái niệm mã hóa để tăng cường bảo mật dữ liệu trong S3 
+
+1. Tổng quan về Amazon S3 Security 
+- Trong Amazon S3, có nhiều cách kiểm soát truy cập. Các cơ chế chính gồm:
+
+1.1. User-based Security
+- Đây là bảo mật dựa trên người dùng IAM (Identity and Access Management)
+- Một IAM User hoặc IAM Role sẽ được gán IAM Policy 
+- IAM Policy định nghĩa những API call nào được phép (hoặc bị từ chối) cho người dùng đó 
+-> Ví dụ: Ta có thể cho phép user gọi s3:GetObject hoặc s3:PutObject lên một bucket cụ thể 
+1.2. Resource-based Security
+- Ngoài bảo mật theo user, AWS còn có bảo mật theo tài nguyên 
+- Với S3, điều này được thực hiện thông qua S3 Bucket Policy 
+- Đây là chính sách ở cấp bucket (bucket-wide rules) mà ta có thể thiết lập trực tiếp trong S3 Console 
+- Các Bucket Policy cho phép:
+    + Cho phép người dùng cụ thể truy cập bucket 
+    + Cho phép người dùng từ tài khoản khác (cross-account) truy cập bucket 
+    + Hoặc làm cho bucket trở nên public 
+1.3 Access Control List (ACL)
+- Object ACL: là cấp độ chi tiết hơn (finer-grained) - điều khiển truy cập cho từng object cụ thể 
+- Bucket ACL: áp dụng cho cả bucket 
+- Tuy nhiên:
+    + ACL hiện nay ít được sử dụng 
+    + Có thể bị vô hiệu hóa trong nhiều trường hợp vì Bucket Policy đã thay thế gần như hoàn toàn 
+
+2. Khi nào một IAM Principle có thể truy cập vào S3 Object
+- Một IAM Principle (tức là một IAM user, role hoặc service) có thể truy cập S3 Object nếu và chỉ nếu:
+    + IAM Permission cho phép hành động đó 
+    + Resource Policy (như Bucket Policy) cũng cho phép 
+    + Không có explicit deny (từ chối rõ ràng) nào ngăn cản hành động
+-> Chỉ khi tất cả điều kiện trên đúng, lệnh gọi API mới được chấp nhận. Nếu có một "deny" rõ ràng, thì quyền truy cập sẽ luôn bị chặn, bất kể có bao nhiêu "allow"
+
+3. Mã hóa trong S3 
+- Một lớp bảo mật khác là mã hóa đối tượng (object encryption)
+- Nó đảm bảo rằng dữ liệu của ta trong S3 được bảo vệ ngay cả khi bị truy cập trái phép 
+- Mỗi object có thể được mã hóa bằng encryption key, có thể là:
+    + do AWS quản lý (SSE-S3, SSE-KMS) 
+    + do người dùng tự cung cấp (SSE-C)
+
+4. Cấu trúc của S3 Bucket Policy 
+- Một S3 Bucket Policy là một tài liệu JSON (JSON-based policy)
+- Ví dụ một policy đơn giản:
+        {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::example-bucket/*"
+            }
+        ]
+        }
+- Phân tích:
+    + Resource: Xác định bucket và các object mà policy áp dụng. Dấu * nghĩa là tất cả object trong bucket 
+    + Effect: Allow hoặc Deny hành động 
+    + Action: Danh sách API được cho phép hoặc từ chối, ở đây là s3:GetObject 
+    + Principal: Chỉ định ai được áp dụng policy. Dấu * nghĩa là mọi người (public)
+=> Đây chính là policy làm bucket trở nên "public read"
+
+5. Ví dụ các tình huống bảo mật S3 
+
+5.1 Truy cập công khai (Public Access)
+- Giả sử có một website visitor (người dùng trên Internet)
+- Họ muốn truy cập file trong bucket của ta 
+- Để làm điều đó:
+    + Ta gắn một Bucket Policy như ví dụ ở trên
+    + Sau đó, các object trong bucket có thể truy cập công khai 
+-> Đây là cách tạo Public S3 Bucket, thường dùng cho hosting website tĩnh 
+5.2 Truy cập từ người dùng trong cùng tài khoản (IAM User Access)
+- Nếu người dùng là IAM user trong cùng tài khoản AWS:
+-> Ta chỉ cần gán IAM Policy cho user đó 
+- Ví dụ: Cho phép user Alice gọi s3:GetObject trên bucket my-data-bucket 
+-> Khi policy IAM cho phép, người dùng có thể truy cập bucket tương ứng 
+5.3 Truy cập từ EC2 Instance 
+- Khi muốn EC2 instance truy cập S3, ta không nên dùng IAM user (không an toàn vì cần lưu key)
+- Thay vào đó ta tạo IAM Role cho EC2 instance, gắn chính sách IAM phù hợp, và EC2 có thể gọi API đến S3 Bucket an toàn 
+5.4 Cross-Account Access 
+- Trường hợp người dùng thuộc tài khoản AWS khác cần truy cập bucket của ta 
+- Khi đó, ta cần phải dùng Bucket Policy để cấp quyền
+- Ví dụ:
+    + Có user trong tài khoản B muốn truy cập bucket ở tài khoản A 
+    + Ta viết Bucket Policy trong tài khoản A cho phép user đó thực hiện hành động 
+-> Nhờ đó, user ở tài khoản khác có thể gọi API đến bucket của ta một cách an toàn, có kiểm soát 
+
+6. Block Public Access - Lớp bảo mật bổ sung 
+- AWS nhận thấy nhiều công ty bị rò rỉ dữ liệu do cấu hình nhầm Bucket Policy
+- Do đó, AWS giới thiệu Bucket settings for Block Public Access 
+- Cách hoạt động:
+    + Dù có tạo Bucket Policy công khai, nếu Block Public Access đang bật, thì bucket vẫn không thể công khai được
+    + Mục tiêu là ngăn chặn rò rỉ dữ liệu nhạy cảm do lỗi cấu hình 
+- Cấu hình: Có thể bật Block Public Access:
+    + Ở mức bucket (cho từng bucket cụ thể)
+    + Hoặc ở mức tài khoản (áp dụng cho tất cả bucket trong account)
+-> Nếu biết chắc rằng không có bucket nào nên public, hãy bật Block Public Access ở cấp tài khoản để bảo vệ toàn bộ dữ liệu 
