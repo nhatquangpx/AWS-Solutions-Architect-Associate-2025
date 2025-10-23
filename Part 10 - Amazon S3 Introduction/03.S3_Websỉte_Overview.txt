@@ -1,0 +1,60 @@
+        ### Mục tiêu bài học ###
+- Hiểu được S3 có thể dùng để host website tĩnh như thế nào 
+- Biết cấu trúc URL của website trên S3 tùy theo vùng (AWS Region)
+- Nắm được cách bật chế độ website hosting cho S3 bucket 
+- Biết lý do vì sao website có thể bị lỗi 403 Forbidden và cách khắc phục bằng bucket policy 
+
+1. Tổng quan về việc sử dụng S3 để tạo website 
+- Amazon S3 không chỉ là nơi lưu trữ dữ liệu mà còn có thể sử dụng để host (lưu trữ và phục vụ) các trang web tĩnh 
+- Static website là loại website chỉ gồm các file như:
+    + HTML: giao diện, nội dung trang web 
+    + CSS: định dạng giao diện 
+    + JavaScript: tương tác cơ bản phía client 
+    + Hình ảnh hoặc video 
+- Không có xử lý phía server (như PHP, Nodejs hay CSDL). Vì thế S3 rất phù hợp để lưu trữ loại website này 
+
+2. S3 có thể host website như thế nào?
+- Có thể tạo một bucket trong S3 để chứa toàn bộ các file cần thiết cho website, ví dụ: index.html, style.css, script.js, các hình ảnh như logo.png,...
+- Sau khi bật chế độ Static website hosting, S3 sẽ cung cấp một đường dẫn mà qua đó người dùng có thể truy cập trang web trên Internet 
+
+3. URL của website trên S3 phụ thuộc vào Region 
+- URL mà S3 cung cấp để truy cập website sẽ thay đổi tuy theo Region nơi tạo bucket 
+- Ví dụ:   
+    + Ở một số vùng, URL có thể là:
+            http://bucket-name.s3-website-us-east-1.amazonaws.com
+    + Ở vùng khác, nó có thể là:
+            http://bucket-name.s3-website.eu-west-3.amazonaws.com
+-> Điểm khác biệt là một URL có dấu gạch ngang, trong khi URL khác có dấu chấm giữa các phần tên miền
+=> Không cần phải nhớ chính xác, chỉ cần hiểu rằng URL sẽ thay đổi một chút tùy vào region 
+
+4. Cấu trúc lưu trữ website trong S3 
+- Sẽ có một S3 bucket riêng biệt (gọi là "extra bucket" trong script) và bucket này sẽ chứa toàn bộ các file của website 
+- Sau đó, bật chế độ "Static website hosting" trong phần cấu hình bucket. Khi đó bucket sẽ biến thành một website có thể truy cập công khai thông qua đường dẫn URL mà AWS cung cấp 
+
+5. Truy cập website thông qua URL 
+- Khi người dùng nhập URL vào trình duyệt, trình duyệt sẽ gửi yêu cầu đến S3 bucket của bạn
+- Nếu cấu hình đúng, S3 sẽ phản hồi lại các file HTML, CSS, hình ảnh,.. tương ứng để hiển thị website 
+
+6. Vấn đề: Lỗi 403 Forbidden 
+- Nếu đã bật chế độ Static website hosting mà khi truy cập website vẫn thấy lỗi:
+    403 Forbidden
+Điều đó có nghĩa là bucket không cho phép đọc công khai (public read)
+-> Vì thế, người dùng bên ngoài không thể xem được nội dung của website 
+
+7. Cách khắc phục lỗi 403: S3 Bucket Policy 
+- Để website hoạt động, cần đảm bảo rằng các file trong S3 có thể được đọc công khai 
+- Điều này được thực hiện thông qua S3 Bucket Policy - một đoạn JSON quy định ai có thể truy cập vào bucket và quyền họ có 
+- Ví dụ, cần attach một bucket policy cho phép quyền đọc công khai như sau:
+    {
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::your-bucket-name/*"
+        }
+    ]
+    }
+-> Chính nhờ việc bật public read qua bucket policy này, website mới có thể truy cập được qua internet 
+
