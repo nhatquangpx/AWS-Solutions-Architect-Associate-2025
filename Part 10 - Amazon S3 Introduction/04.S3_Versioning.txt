@@ -1,0 +1,42 @@
+        ### Mục tiêu bài học ### 
+- Hiểu được Versioning là gì và nó hoạt động như thế nào trong S3 
+- Biết cách bật Versioning ở cấp độ bucket 
+- Hiểu rõ lợi ích của việc bật Versioning, đặc biệt trong việc phục hồi dữ liệu và phòng tránh xóa nhầm file 
+- Nắm được các ghi chú quan trọng khi sử dụng và tạm ngừng Versioning 
+
+1. Giới thiệu về Versioning trong Amazon S3 
+- Trước đó, ta đã được học cách sử dụng S3 để hosting website tĩnh 
+- Bây giờ, hãy tưởng tượng: ta muốn cập nhật website đó, thay thế file HTML, CSS hay hình ảnh mới - nhưng vấn muốn đảm bảo an toàn nếu lỡ có lỗi xảy ra hoặc muốn quay lại phiên bản cũ 
+=> Sử dụng Versioning trong Amazon S3 
+
+2. Khái niệm cơ bản về Versioning 
+- Versioning cho phép lưu trữ nhiều phiên bản của cùng một file trong một bucket 
+- Ví dụ:
+    + Tải một file lần đầu, S3 gán cho nó một phiên bản đầu tiên (Version 1)
+    + Nếu tải lên lại cùng file đó (cùng tên và cùng key). S3 không ghi đè lên file cũ
+    -> Thay vào đó, nó tạo thêm một phiên bản mới - version 2 
+    + Nếu tiếp tục cập nhật nữa, sẽ có V3, V4,...
+- Mỗi phiên bản có một Version ID duy nhất, giúp quản lý hoặc khôi phục lại bất kỳ phiên bản nào trước đó 
+
+3. Cách bật Versioning:
+- Versioning là tùy chọn cấu hình ở cấp độ bucket 
+- Nghĩa là phải bật nó cho từng bucket cụ thể - nó không bật mặc định khi tạo bucket 
+- Khi bật Versioning cho một bucket, mọi file (object) tải lên sau đó đều sẽ được quản lí theo phiên bản 
+
+4. Tại sao nên bật Versioning:
+- Bảo vệ chống lại việc xóa nhầm:
+    + Khi xóa một file trong bucket có bật versioning, S3 không xóa hẳn file đó
+    + Thay vào đó, nó chỉ thêm một "delete marker"
+    -> Điều này có nghĩa là các phiên bản cũ vẫn còn tồn tại trong bucket, và bạn có thể phục hồi lại chúng bất cứ lúc nào 
+- Dễ dàng quay lại phiên bản cũ:
+    + Nếu muốn trở lại file ở trạng thái của 2 ngày trước, chỉ cần chọn phiên bản cũ tương ứng và khôi phục lại 
+    + Không cần lo lắng về việc ghi đè mất dữ liệu
+
+5. Các ghi chú quan trọng khi sử dụng Versioning:
+- Các file được tải lên trước khi bật Versioning:
+    + Những file đó sẽ được gán Version ID là "null"
+    + Nghĩa là chúng không có lịch sử phiên bản trước đó 
+- Khi "suspend" (tạm ngừng) Versioning:
+    + Việc tạm ngừng đó không xóa các phiên bản cũ
+    + Nó chỉ ngừng việc tạo thêm phiên bản mới cho những file tải lên sau đó 
+    + Vì vậy, đây là một thao tác an toàn - có thể bật lại versioning bất kỳ lúc nào mà không mất dữ liệu cũ 
