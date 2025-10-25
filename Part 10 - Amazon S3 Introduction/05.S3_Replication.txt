@@ -62,3 +62,19 @@
 - S3 tự động theo dõi mọi object mới hoặc cập nhật trong bucket nguồn 
 - Hệ thống sẽ tự động sao chép các object này sang bucket đích, nhưng không làm ảnh hưởng đến hiệu năng tải lên ban đầu 
 - Quá trình này được thực hiện bất đồng bộ, tức là có thể thấy độ trễ nhỏ trước khi object xuất hiện ở bucket đích 
+
+6. Một số ghi chú quan trọng về Replication
+- Chỉ áp dụng cho các object mới:
+    + Sau khi bật replication, chỉ các object mới được tải lên mới được nhân bản.
+    + Các file cũ trước khi bật replication sẽ không được tự động sao chép 
+- Nếu muốn nhân bản các đối tượng đã tồn tại, phải dùng tính năng S3 Batch Replication:
+    + Sao chép các đối tượng cũ đã có trong bucket
+    + Sao chép lại các đối tượng đã từng thất bại trong quá trình replication trước đó 
+- Xử lý thao tác xóa: Khi xóa một object trong bucket nguồn
+    + Delete marker có thể được nhân bản sang bucket đích - đây là tùy chọn do ta quyết định có bật hoặc không 
+    + Tuy nhiên nếu xóa vĩnh viên, kèm theo version ID thì sẽ không được nhân bản 
+    -> Mục đích: Tránh việc xóa nhầm hoặc malicious delete (xóa độc hại) lan sang bucket đích 
+- Không có "Replication chaining": Replication không được truyền nối tiếp (no chaining)
+    + Ví dụ: Bucket 1 sao chép sang Bucket 2, Bucket 2 sao chép sang Bucket 3 
+    -> Thì dữ liệu từ Bucket 1 sẽ không tự động sang Bucket 3
+    + Replication chỉ hoạt động trực tiếp giữa cặp nguồn-đích được cấu hình 
