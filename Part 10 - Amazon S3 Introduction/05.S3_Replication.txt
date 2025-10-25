@@ -1,0 +1,80 @@
+        ### Mục tiêu bài học ### 
+- Hiểu Replication là gì và mục đích sử dụng của nó 
+- Nắm rõ 2 loại Replication trong S3:
+    + CRR (Cross-Region Replication) - sao chép giữa các vùng khác nhau 
+    + SRR (Same-Region Replication) - sao chép trong cùng một vùng 
+- Biết các yêu cầu bắt buộc để replication hoạt động 
+- Nắm được các tình huống sử dụng thực tế của từng loại replication 
+
+1. Giới thiệu về Amazon S3 Replication 
+- Amazon S3 Replication là tính năng sao chép dữ liệu tự động và bất đồng bộ giữa các bucket S3 
+- Tính năng này giúp đảm bảo dữ liệu được nhân bản (replicate) sang một bucket khác - có thể là trong cùng vùng (region) hoặc ở vùng khác nhau 
+- AWS cung cấp 2 loại replication chính, gọi là 2 "flavors" của replication:
+    + CRR: Sao chép dữ liệu giữa 2 vùng AWS khác nhau 
+    + SRR: Sao chép dữ liệu trong cùng một vùng AWS 
+
+2. Cách hoạt động của Replication 
+- Tình huống:
+    + Bạn có 1 S3 bucket nguồn (source bucket) ở một vùng AWS - ví dụ: us-east-1
+    + Bạn muốn sao chép dữ liệu của bucket đó sang một bucket đích - có thể cùng hoặc khác vùng 
+- AWS sẽ thực hiện việc sao chép này một cách bất đồng bộ, nghĩa là:
+    + Khi bạn tải một file lên bucket nguồn
+    + Hệ thống sẽ tự động sao chép nó sang bucket đích trong nền
+    + Mà không làm chậm quá trình tải file ban đầu 
+
+3. Các yêu cầu bắt buộc để replication hoạt động 
+- Để tính năng Replication hoạt động chính xác, cần đảm bảo các điều kiện sau:
+    3.1. Versioning phải được bật 
+    + Phải bật Versioning cho cả bucket nguồn và bucket đích 
+    + Nếu không có versioning, replication sẽ không thể hoạt động 
+    + Điều này giúp S3 có thể theo dõi các thay đổi của từng object và biết được object nào cần sao chép 
+    3.2. IAM permissions phải được cấp đúng cách 
+    + Dịch vụ S3 cần có quyền read từ bucket nguồn và quyền write vào bucket đích 
+    + Điều này thường được thực hiện bằng cách tạo IAM Role với các quyền cụ thể, cho phép dịch vụ S3 thực hiện việc replication thay bạn 
+    3.3. Tùy theo loại replication:
+    + Nếu dùng CRR -> 2 bucket phải nằm ở 2 vùng khác nhau 
+    + Nếu dùng SRR -> 2 bucket phải nằm trong cùng 1 vùng 
+    3.4. Buckets có thể ở cùng hoặc khác tài khoản AWS (cross-account)
+    + Hoàn toàn có thể thiết lập replication giữa 2 tài khoản AWS khác nhau, miễn là các quyền IAM được cấp phù hợp 
+- Ghi nhớ: Việc sao chép diễn ra tự động và bất đồng bộ - không cần chủ động kích hoạt từng lần sao chép 
+
+4. Các Usecases của S3 Replication
+
+4.1. CRR
+- Tuân thủ quy định (Compliance)
+    + Một số tổ chức hoặc quốc gia yêu cầu dữ liệu phải được lưu ở nhiều vùng địa lý khác nhau để đảm bảo khả năng phục hồi hoặc tuân thủ quy định bảo mật 
+    + CRR giúp đáp ứng yêu này một cách tự động 
+- Giảm độ trễ truy cập (Low latency access)
+    + Người dùng ở các vùng khác nhau có thể truy cập dữ liệu nhanh hơn vì dữ liệu được nhân bản đến vùng gần họ hơn 
+- Sao chép dữ liệu giữa các tài khoản (Cross-Account replication)
+    + Có thể sao chép dữ liệu từ một tài khoản AWS sang tài khoản khác, giúp phân tách môi trường prod/test, hoặc chia sẻ dữ liệu an toàn giữa các nhóm 
+- VD: Có bucket ở us-east-1 và muốn bản sao dữ liệu ở ap-southeast-1 để người dùng tại châu Á truy cập nhanh hơn hoặc để đáp ứng yêu cầu sao lưu vùng địa lý 
+
+4.2. SRR
+- Tổng hợp log từ nhiều bucket (Aggregate logs)
+    + Bạn có nhiều ứng dụng, mỗi ứng dụng ghi log vào một bucket riêng 
+    + SRR có thể sao chép toàn bộ log từ các bucket đó vào một bucket trung tâm để phân tích dễ dàng hơn 
+- Sao chép dữ liệu giữa môi trườg Production và Test (Live replicaiton)
+    + Bạn có thể replicate dữ liệu thật (production) sang môi trường test để thử nghiệm mà không ảnh hưởng đến dữ liệu gốc 
+    + Điều này đặc biệt hữu ích cho các quy trình Dev/Test 
+
+5. Cách thức hoạt động phía sau 
+- S3 tự động theo dõi mọi object mới hoặc cập nhật trong bucket nguồn 
+- Hệ thống sẽ tự động sao chép các object này sang bucket đích, nhưng không làm ảnh hưởng đến hiệu năng tải lên ban đầu 
+- Quá trình này được thực hiện bất đồng bộ, tức là có thể thấy độ trễ nhỏ trước khi object xuất hiện ở bucket đích 
+
+6. Một số ghi chú quan trọng về Replication
+- Chỉ áp dụng cho các object mới:
+    + Sau khi bật replication, chỉ các object mới được tải lên mới được nhân bản.
+    + Các file cũ trước khi bật replication sẽ không được tự động sao chép 
+- Nếu muốn nhân bản các đối tượng đã tồn tại, phải dùng tính năng S3 Batch Replication:
+    + Sao chép các đối tượng cũ đã có trong bucket
+    + Sao chép lại các đối tượng đã từng thất bại trong quá trình replication trước đó 
+- Xử lý thao tác xóa: Khi xóa một object trong bucket nguồn
+    + Delete marker có thể được nhân bản sang bucket đích - đây là tùy chọn do ta quyết định có bật hoặc không 
+    + Tuy nhiên nếu xóa vĩnh viên, kèm theo version ID thì sẽ không được nhân bản 
+    -> Mục đích: Tránh việc xóa nhầm hoặc malicious delete (xóa độc hại) lan sang bucket đích 
+- Không có "Replication chaining": Replication không được truyền nối tiếp (no chaining)
+    + Ví dụ: Bucket 1 sao chép sang Bucket 2, Bucket 2 sao chép sang Bucket 3 
+    -> Thì dữ liệu từ Bucket 1 sẽ không tự động sang Bucket 3
+    + Replication chỉ hoạt động trực tiếp giữa cặp nguồn-đích được cấu hình 
