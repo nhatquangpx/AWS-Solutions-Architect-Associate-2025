@@ -1,0 +1,125 @@
+        ### Mục tiêu bài học ### 
+- Hiểu rõ các loại Storage Classes trong Amazon S3 và sự khác biệt giữa chúng 
+- Nắm được khái niệm Durability và Availability 
+- Biết được mục đích sử dụng, đặc điểm, chi phí và trường hợp áp dụng phù hợp của từng lớp lưu trữ (Standard, Infrequent Access, Glacier, Intelligent-Tiering...)
+- Biết cách chuyển đổi giữa các lớp lưu trữ thủ công hoặc tự động bằng S3 Lifecycle Configurations 
+
+1. Giới thiệu tổng quan về Amazon S3 Storage Classes 
+- Amazon S3 cung cấp nhiều loại lớp lưu trữ khác nhau, phù hợp với tần suất truy cập, chi phí và mục đích sử dụng dữ liệu 
+- Các lớp lưu trữ chính bao gồm:
+    + S3 Standard - General Purpose 
+    + S3 Standard - Infrequent Access (IA)
+    + S3 One Zone - Infrequent Access (One Zone-IA)
+    + S3 Glacier Instanct Retrieval 
+    + S3 Glacier Flexible Retrieval
+    + S3 Glacier Deep Archive
+    + S3 Intelligent-Tiering
+- Khi bạn tạo một object trong S3, bạn có thể chọn lớp lưu trữ cho object đó
+- Sau này, bạn cũng có thể:
+    + Thay đổi thủ công lớp lưu trữ
+    + Cấu hình Lifecycle Rules để tự động di chuyển object giữa các lớp theo thời gian hoặc tần suất truy cập 
+
+2. Hai khái niệm cốt lõi: Durability và Availability
+- Durability: Độ bền dữ liệu
+    + Thể hiện khả năng dữ liệu bị mất theo thời gian 
+    + Amazon S3 có độ bền cực cao: 11 nines (99.999999999%)
+    -> Nghĩa là nếu lưu 10 triệu object trung bình chỉ mất 1 object trong 10000 năm 
+    + Tất cả các lớp lưu trữ của S3 đều có độ bền như nhau - 11 nines 
+- Availability: Tính sẵn sàng 
+    + Availability biểu thị mức độ sẵn sàng truy cập dữ liệu (tức là khả năng không bị gián đoạn)
+    + Mỗi lớp lưu trữ có Availability khác nhau 
+      VD:
+        . S3 Standard: 99.99% Availability
+        -> Tức là trung bình 53p downtime mỗi năm 
+        . Các lớp khác như IA hoặc Glacier sẽ có Availability thấp hơn, vì chi phí rẻ hơn 
+    
+3. Phân tích chi tiết từng Storage Class
+
+3.1. S3 Standard - General Purpose
+- Mục đích: Dành cho dữ liệu được truy cập thường xuyên 
+- Availability: 99.99%
+- Durability: 11 nines 
+- Hiệu suất: Độ trễ thấp, thông lượng cao 
+- Chịu lỗi: Có thể chịu 2 sự cố cơ sở hạ tầng (facility failures) cùng lúc mà không mất dữ liệu 
+- Usecases:
+    + Phấn tích dữ liệu lớn  (Big Data Analytics)
+    + Ứng dụng di động và trò chơi (Mobile & Gaming Apps)
+    + Phân phối nội dung (Content Distribution)
+
+3.2. S3 Standard - Infrequent Access (IA)
+- Mục đích: Lưu trữ dữ liệu được truy cập ít hơn, nhưng cần truy cập nhanh khi cần 
+- Availability: 99.9%
+- Durability: 11 nines
+- Chi phí:
+    + Rẻ hơn S3 Standard
+    + Có phí truy xuất (retrieval cost) khi tải dữ liệu về 
+- Usecases:
+    + Sao lưu (Backups)
+    + Disaster Recovery
+
+3.3. S3 One Zone - Infrequent Access (One Zone-IA)
+- Mục đích: Dữ liệu ít truy cập, chỉ cần lưu trong 1 AZ 
+- Durability: Cao nhưng giới hạn trong 1 AZ, nên mất dữ liệu nếu AZ bị phá hủy 
+- Availability: 99.5%
+- Chi phí: thấp hơn Standard-IA 
+- Usecases:
+    + Lưu bản sao phụ (secondary backup)
+    + Lưu dữ liệu có thể tái tạo dễ dàng (non-critical data)
+
+3.4. S3 Glacier Family (Cold Storage)
+- Các lớp Glacier được thiết kế cho lưu trữ dài hạn và chi phí cực thấp, đổi lại thời gian truy xuất lâu hơn 
+3.4.1. S3 Glacier Instanct Retrieval
+- Mục đích: Lưu trữ dài hạn nhưng vẫn cần truy xuất trong mili-second
+- Thời gian truy xuất: ms 
+- Thời gian lưu tối thiểu: 90 ngày 
+- Usecases:
+    + Sao lưu định kỳ
+    + Dữ liệu được truy cập thỉnh thoảng (VD: mỗi quý)
+3.4.2. S3 Glacier Flexible Retrieval
+- Mục đích: Lưu trữ dài hạn, linh hoạt trong thời gian truy xuất 
+- Ba chế độ truy xuất:
+    + Expedited: 1-5p 
+    + Standard: 3-5h
+    + Bulk: 5-12h (Free)
+- Thời gian lưu trữ tối thiểu: 90 ngày 
+- Usecases: Dữ liệu cần khôi phục linh hoạt, có thể chờ vài giờ 
+3.4.3. S3 Glacier Deep Archive 
+- Mục đích: Lưu trữ dài hạn nhất, chi phí thấp nhất trong tất cả các lớp 
+- Thời gian truy xuất:
+    + Standard: 12h
+    + Bulk: 48h
+- Thời gian lưu tối thiểu: 180 ngày 
+- Usecases:
+    + Lưu trữ hồ sơ, tài liệu tuân thủ quy định (compliance archives)
+    + Sao lưu lâu dài mà hầu như không bao giờ truy cập 
+3.4.4. S3 Intelligent-Tiering 
+- Mục đích: Tự động di chuyển dữ liệu giữa các lớp truy cập dựa trên mẫu sử dụng (usage patterns)
+- Chi phí:
+    + Có phí giám sát nhỏ hàng tháng và phí auto-tiering 
+    + Nhưng không có phí truy xuất dữ liệu 
+- Tiers tự động và tùy chọn:
+    1. Frequent Access Tier - Mặc định 
+    2. Infrequent Access Tier - Khi không truy cập trong 30 ngày 
+    3. Archive Instant Access Tier - Khi không truy cập >90 ngày 
+    4. Archive Access Tier (optional) - Có thể cấu hình 90-700 ngày 
+    5. Deep Archive Access Tier (optional) - Cho phép dữ liệu không truy cập 180-700+ ngày 
+=> Điểm mạnh: Bạn không cần quản lý thủ công, S3 sẽ tự di chuyển dữ liệu giữa các tier để tối ưu chi phí mà vẫn đảm bảo hiệu năng 
+
+4. So sánh tổng quan giữa các Storage Classes
+| Lớp lưu trữ              | Availability | Min. Duration | Tốc độ truy xuất | Use Case chính                |
+| ------------------------ | ------------ | ------------- | ---------------- | ----------------------------- |
+| **Standard**             | 99.99%       | -             | Milliseconds     | Dữ liệu truy cập thường xuyên |
+| **Standard-IA**          | 99.9%        | 30 ngày       | Milliseconds     | Backup, DR                    |
+| **One Zone-IA**          | 99.5%        | 30 ngày       | Milliseconds     | Dữ liệu thứ cấp, tái tạo được |
+| **Glacier Instant**      | 99.9%        | 90 ngày       | Milliseconds     | Archival, backup định kỳ      |
+| **Glacier Flexible**     | 99.9%        | 90 ngày       | 1 phút – 12 giờ  | Lưu trữ linh hoạt, backup     |
+| **Glacier Deep Archive** | 99.9%        | 180 ngày      | 12–48 giờ        | Lưu trữ lâu dài               |
+| **Intelligent-Tiering**  | 99.9–99.99%  | -             | Tự động          | Tối ưu chi phí linh hoạt      |
+
+
+5. Ghi chú
+- Durability 11 nines giống nhau ở tất cả các lớp 
+- Availability giảm dần khi bạn giảm số lượng vùng lưu trữ (AZs)
+- Glacier và IA có chi phí retrieval, nên cần cân nhắc khi chọn 
+- Lifecycle Rules có thể được dùng để chuyển dữ liệu tự động giữa các lớp 
+- Không cần ghi nhớ con số cụ thể, chỉ cần hiểu được mục đích, chi phí và tốc độ truy cập của từng loại 
