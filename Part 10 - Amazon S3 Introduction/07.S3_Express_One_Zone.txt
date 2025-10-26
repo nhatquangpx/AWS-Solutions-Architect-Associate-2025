@@ -1,0 +1,53 @@
+        ### Mục tiêu bài học ###
+- S3 Express One Zone là gì và vì sao nó khác với các storage class thông thường 
+- Cấu trúc và đặc điểm kỹ thuật của loại bucket đặc biệt này - "directory bucket"
+- Ưu điểm, nhược điểm của việc lưu trữ dữ liệu trong một AZ duy nhất 
+- Các usecases phù hợp với S3 Express One Zone 
+
+1. Giới thiệu về S3 Express One Zone 
+- Amazon S3 có nhiều storage class khác nhau - vd Standard, Intelligent-Tiering, Glacier,...
+- Tuy nhiên, S3 Express One Zone được tách riêng ra vì nó hoạt động rất khác biệt 
+- Đây là một loại storage class hiệu năng cao (high performance), nhưng chỉ lưu trữ dữ liệu trong một AZ duy nhất 
+
+2. Khái niệm "directory bucket"
+- Điểm khác biệt đầu tiên: Khi sử dụng S3 Express One Zone, các object của bạn không nằm trong "standard bucket" thông thường mà được lưu trong một loại bucket đặc biệt gọi là directory bucket 
+- Directory bucket là một dạng bucket chuyên dụng, thiết kế riêng cho hiệu năng cao 
+- Khác với S3 Standard, bucket này không phân tán dữ liệu ra nhiều AZ - mà chỉ tồn tại trong một AZ duy nhất 
+- Khi tạo bucket, bạn được chọn AZ cụ thể mà dữ liệu sẽ được lưu trong đó 
+
+3. Hiệu năng và chi phí 
+- Do dữ liệu chỉ nằm trong một AZ, nên:
+    + Hệ thống giảm thiểu độ trễ khi truy cập dữ liệu 
+    + Tốc dộ xử lý cực cao: có thể xử lý hàng trăm nghìn yêu cầu mỗi giây
+    + Độ trễ ở mức 1 chữ số ms 
+    + Theo AWS, hiệu nắng gấp khoảng 10 lần so với S3 Standard
+    + Đồng thời, chi phí thấp hơn khoảng 50% so với S3 Standard 
+
+4. Durability và Availability
+- Độ bền: vẫn rất tốt - dữ liệu được bảo vệ trong cùng AZ 
+- Tính sẵn sàng: thấp hơn vì không có sự sao lưu sang nhiều AZ 
+-> Nếu AZ mà bạn chọn gặp sự cố thì dữ liệu sẽ bị ảnh hưởng trực tiếp 
+- Do đó, S3 Express One Zone không phù hợp cho dữ liệu cần khả năng sẵn sàng cao hoặc phục hồi vùng (multi-AZ resilience)
+
+5. Lợi ích của việc "đồng vị trí" (co-location)
+- Một điểm rất hay của S3 Express One Zone là có thể đặt tài nguyên lưu trữ (storage) và tài nguyên tính toán (compute) trong cùng một AZ 
+- Lợi ích:
+    + Giảm độ trễ truy cập dữ liệu giữa compute và storage 
+    + Giảm chi phí mạng (networking cost) do dữ liệu không cần truyền qua nhiều AZ 
+    + Tăng hiệu năng tổng thể cho ứng dụng cần xử lý dữ liệu lớn, theo thời gian thực 
+
+6. Usecases 
+- Phù hợp cho những ứng dụng nhạy cảm với độ trễ và yêu cầu hiệu năng cao 
+- Ứng dụng nhạy cảm độ trễ: hệ thống giao dịch tài chính, game real-time, streaming 
+- Ứng dụng xử lý dữ liệu lớn: Các tác vụ đọc/ghi dữ liệu khối lượng lớn liên tục 
+- AI và Machine Learning Training: Khi huấn luyện mô hình cần truy cập dữ liệu huấn luyện khổng lồ với độ trễ thấp 
+- Financial Modeling: Mô phỏng dữ liệu tài chính, cần tính toán liên tục và tốc độ cao 
+- Media Processing: Chuyển mã video, xử lý ảnh, hoặc dựng phim 
+- High Performance Computing: Các mô phỏng khoa học, tính toán kỹ thuật chuyên sâu 
+
+7. Tích hợp với các dịch vụ AWS khác 
+- S3 Express One Zone hoạt động hiệu quả nhất khi được tích hợp với các dịch vụ phân tích AI/ML của AWS, bao gồm:
+    + Amazon SageMaker Model Training - huấn luyện mô hình AI nhanh hơn 
+    + Amazon Athena - truy vấn dữ liệu nhanh hơn trực tiếp từ S3 
+    + Amazon EMR - xử lý big data 
+    + AWS Glue - trích xuất, chuyển đổi và nạp dữ liệu (ETL)
