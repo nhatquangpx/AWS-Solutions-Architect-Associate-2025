@@ -1,0 +1,86 @@
+        ### Mục tiêu bài học ###
+- Học cách di chuyển (transition) các object trong Amazon S3 giữa các storage class khác nhau 
+- Lifecycle rules là gì, bao gồm transition action và expiration action 
+- Cách thiết lập lifecycle rule cho từng loại dữ liệu khác nhau 
+- Các kịch bản thực tế và bài toán dạng exam question liên quan đến lifecycle 
+- Cách sử dụng S3 Analytics để xác định thời điểm tối ưu chuyển đổi dữ liệu 
+
+1. Tổng quan về việc di chuyển giữa các Storage Class 
+- Amazon S3 hỗ trợ nhiều storage class và bạn có thể transition các object giữa các class tùy theo nhu cầu truy cập dữ liệu 
+- Trong sơ đồ minh họa, bạn có thể thấy các hướng chuyển đổi khả thi:
+    + Từ S3 Standard -> Standard-IA -> Intelligent-Tiering -> One Zone-IA 
+    + Từ One Zone-IA -> Glacier Flexible Retrieval/Glacier Deep Archive 
+- Mỗi đường chuyển đại diện cho một hướng hợp lệ mà bạn có thể cấu hình trong lifecycle rule 
+
+2. Khi nào nên chuyển dữ liệu sang class khác 
+- Nếu bạn biết rằng dữ liệu sẽ ít được truy cập, hãy chuyển sang Standard-IA để tiết kiệm chi phí 
+- Nếu bạn muốn lưu trữ lâu dài, hãy chuyển sang Glacier hoặc Deep Archive 
+- Bạn có thể thực hiện việc này:
+    + Thủ công: chuyển từng object bằng tay 
+    + Tự động: sử dụng S3 Lifecycle Rules - cách hiệu quả và được khuyến nghị 
+
+3. Lifecycle Rules 
+- Lifecycle rules là công cụ tự động hóa quản lý vòng đời dữ liệu, giúp:
+    + Chuyển object sang storage class khác
+    + Xóa object hoặc version cũ sau một thời gian nhất định 
+- Mỗi lifecycle có thể bao gồm các thành phần chính sau:
+3.1. Transition actions 
+- Dùng để tự động chuyển object sang storage class khác sau một khoảng thời gian nhất định kể từ khi tạo 
+- Ví dụ:
+    + Chuyển sang Standard-IA sau 60 ngày kể từ khi tạo 
+    + Chuyển sang Glacier để lưu trữ sau 6 tháng 
+- Điều này giúp tối ưu chi phí lưu trữ khi dữ liệu không còn được truy cập thuờg xuyên 
+3.2. Expiration actions 
+- Dùng để tự động xóa hoặc hết hạn các object sau một thời gian xác định 
+- Ví dụ:
+    + Xóa các file log truy cập sau 36 ngày 
+    + Xóa các version cũ của file (nếu đã bật versioning)
+    + Xóa incomplete multipart uploads sau 14 ngày 
+- Những quy tắc này giúp giảm rác dữ liệu và tiết kiệm chi phí lưu trữ 
+3.3. Scope của Lifecycle Rule 
+- Bạn có thể giới hạn quy tắc này áp dụng cho:
+    + Toàn bộ bucket 
+    + Một prefix cụ thể (đường dẫn con), vd: /thumbnails/, /source-images/
+    + Theo tag của object, vd chỉ áp dụng cho tag Department: Finance
+- Điều này rất hữu ích khi bạn có nhiều loại dữ liệu khác nhau trong cùng một bucket 
+
+4. Ví dụ kịch bản thực tế 
+4.1. Scenario 1: Quản lý hình ảnh gốc và thumbnail 
+- Tình huống: Một ứng dụng EC2 tải ảnh lên S3. Sau khi người dùng upload ảnh hồ sơ, ứng dụng sẽ tạo thumbnails (ảnh thu nhỏ)
+    + Thumbnails có thể được tạo lại dễ dàng từ ảnh gốc 
+    + Thumbnails chỉ cần giữ 60 ngày 
+    + Ảnh gốc phải được truy xuất ngay lập tức trong 60 ngày, nhưng sau đó người dùng chấp nhận đợi vài giờ để lấy lại 
+- Giải pháp:
+| Loại dữ liệu            | Storage Class                                      | Lifecycle Rule              |
+| ----------------------- | -------------------------------------------------- | --------------------------- |
+| Ảnh gốc (source images) | **Standard** → sau 60 ngày **chuyển sang Glacier** | Transition: 60 ngày         |
+| Thumbnails              | **One Zone-IA**                                    | Expiration: xóa sau 60 ngày |
+- Giải thích:
+    + Ảnh gốc cần sẵn sàng nhanh, nên giữ trong Standard trước khi lưu trữ dài hạn 
+    + Thumbnails ít quan trọng, có thể đặt ở One Zone-IA để tiết kiệm chi phí và xóa sau 60 ngày 
+4.2. Scenario 2: Chính sách phục hồi dữ liệu đã xóa 
+- Tình huống: Công ti bạn yêu cầu:
+    + Có thể phục hồi object bị xóa ngay lập tức trong 30 ngày 
+    + Sau 30 ngày, trong 365 ngày tiếp theo, có thể phục hồi trong vòng 48 giờ 
+- Giải pháp:
+    1. Bật S3 Versioning để lưu lại các phiên bản cũ 
+    -> Khi xóa, object chỉ bị ẩn bởi "delete marker", không mất hoàn toàn 
+    2. Tạo lifecycle rule:
+        . Chuyển non-current versions (phiên bản không còn là phiên bản chính) sang Standard-IA 
+        . Sau đó, chuyển tiếp các non-current versions này sang Glacier Deep Archive để lưu trữ dài hạn 
+- Giải thích:
+    + Giữ khả năng khôi phục nhanh (30 ngày) bằng Standard-IA 
+    + Sau đó tiết kiệm chi phí bằng Glacier Deep Archive 
+
+5. Xác định thời gian tối ưu để chuyển đổi - S3 Analytics 
+- AWS cung cấp công cụ Amazon S3 Analytics để đưa ra khuyến nghị 
+- Đặc điểm:
+    + Hoạt động với S3 Standard và Standard-IA
+    + Không hỗ trợ cho One Zone-IA hoặc Glacier 
+    + Tạo báo cáo CSV chứa thống kê và khuyến nghị chuyển đổi 
+    + Báo cáo được cập nhật hàng ngày 
+    + Mất 24-48 giờ sau khi bật để bắt đầu thấy dữ liệu 
+- Dựa vào báo cáo này, có thể:
+    + Tạo lifecycle rule hợp lý
+    + Hoặc tinh chỉnh các rule hiện tại để tối ưu chi phí và hiệu năng 
+    
