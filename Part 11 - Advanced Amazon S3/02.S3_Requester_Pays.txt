@@ -1,0 +1,47 @@
+        ### Mục tiêu bài học ###
+- Hiểu rõ cơ chế thông thường về chi phí lưu trữ và truyền dữ liệu trong S3 
+- Biết được Requester Pays hoạt động như thế nào 
+- Phân biệt được trách nhiệm chi trả giữa chủ sở hữu bucket và người yêu cầu (requester)
+- Hiểu các điều kiện áp dụng và lợi ích của tính năng này 
+
+1. Giới thiệu về S3 Requester Pays
+- Trong Amazon S3 thông thường, chủ sở hữu bucket sẽ chịu toàn bộ chi phí liên quan đến:
+    + Lưu trữ dữ liệu (storage) trong S3
+    + Truyền tải dữ liệu (data transfer) khi có ai đó tải xuống các objects 
+- Nói cách khác, người sở hữu bucket luôn là người bị tính phí, dù là người khác tải dữ liệu của họ 
+
+2. Tình huống minh họa - Ví dụ cơ bản
+- Giả sử bạn có một S3 bucket chứa nhiều tệp dữ liệu objects 
+- Một người dùng khác (requester) muốn tải về một file từ bucket đó 
+- Trong trường hợp thông thường:
+    + Người sở hữu bucket sẽ phải trả tiền cho chi phí truyền tải dữ liệu, tức chi phí download 
+    + Người tải thì không tốn gì cả 
+-> Điều này ổn nếu chỉ có vài lượt tải, nhưng nếu bạn có các heavy files hoặc rất nhiều người tải cùng lúc, chi phí sẽ tăng nhanh chóng cho người chủ bucket 
+
+3. Giải pháp: Kích hoạt S3 Requester Pays 
+- Để tránh tình trạng chủ bucket phải trả toàn bộ chi phí khi có quá nhiều người tải, AWS cung cấp tính năng "Requester Pays"
+- Khi bạn bật chế độ Requester Pays cho bucket, thì chi phí truyền tải dữ liệu (data transfer) sẽ do requester thanh toán, thay vì chủ sở hữu bucket 
+
+4. Cơ chế hoạt động 
+| Thành phần chi phí                                 | Ai trả tiền khi **Requester Pays = OFF** | Ai trả tiền khi **Requester Pays = ON** |
+| -------------------------------------------------- | ---------------------------------------- | --------------------------------------- |
+| **Chi phí lưu trữ (Storage)**                      | Bucket Owner                             | Bucket Owner                            |
+| **Chi phí tải xuống (Data Transfer / Networking)** | Bucket Owner                             | Requester                               |
+-> Chủ bucket vẫn trả phí lưu trữ, nhưng requester sẽ trả chi phí truyền dữ liệu nếu bucket bật Requester Pays 
+
+5. Điều khoản sử dụng 
+- Để tính năng này hoạt động chính xác, AWS phải xác định được người tải xuống là ai, nhằm ghi nhận và tính phí đúng tài khoản 
+-> Vì vậy:
+    + Người tải xuống không được phép là người dùng ẩn danh 
+    + Họ phải được xác thực bằng tài khoản AWS hợp lệ 
+- Ví dụ:
+    + Nếu một người tải file bằng AWS CLI hoặc SDK và đăng nhập bằng Access Key của tài khoản AWS của họ, AWS có thể biết chính xác ai là người tải xuống để tính phí tương ứng 
+
+6. Ứng dụng thực tế:
+- Cần chia sẻ bộ dữ liệu lớn (large datasets) cho nhiều người hoặc tổ chức khác nhau 
+- Không muốn phải chịu chi phí download khi có hàng trăm hoặc hàng nghìn người tải về 
+- Ví dụ:
+    + Một tổ chức nghiên cứu muốn chia sẻ dữ liệu khoa học công khai trên S3 
+    + Người khác có thể tải về, nhưng mỗi người tự trả chi phí download của họ 
+    + Như vậy, tổ chức không bị "đội chi phí" chỉ vì chia sẻ dữ liệu công khai 
+    
