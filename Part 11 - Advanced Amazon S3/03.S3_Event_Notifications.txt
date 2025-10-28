@@ -1,0 +1,75 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm về S3 Event Notifications và khi nào nó được kích hoạt 
+- Biết các loại sự kiện có thể xảy ra trong S3 
+- Nắm được các đích đến mà sự kiện có thể được gửi đến như SNS, SQS, Lambda, EventBridge 
+- Hiểu rõ cách phân quyền IAM và Resource Policy để cho phép S3 gửi thông báo đến các dịch vụ khác 
+- Biết thêm về EventBridge, một cơ chế mở rộng mạnh mẽ giúp xử lý sự kiện phức tạp hơn 
+
+1. Giới thiệu về Amazon S3 Event Notifications
+- Khi bạn lưu trữ dữ liệu trên Amazon S3, có nhiều hành động có thể xảy ra, chẳng hạn: 
+    + Một đối tượng được tạo ra 
+    + Một đối tượng bị xóa 
+    + Một đối tượng được khôi phục
+    + Sự kiện replication diễn ra 
+-> S3 Event Notifications cho phép bạn tự động react với những sự kiện này 
+- Ví dụ: Khi một hình ảnh mới được tải lên S3, bạn muốn tự động tạo một thumbnail 
+-> Để làm được điều đó, bạn thiết lập Event Notification trong S3 để gửi thông báo đến một dịch vụ khác (như Lambda) mỗi khi có sự kiện upload xảy ra 
+
+2. Cơ chế hoạt động của Event Notifications 
+- Mỗi khi một sự kiện xảy ra trong S3 (vd: một file được upload), S3 sẽ gửi một thông báo đến một đích đến mà bạn đã cấu hình 
+- Bạn có thể lọc (filter) những sự kiện mà bạn quan tâm 
+- VD: Bạn chỉ muốn nhận thông báo cho các tệp kết thúc bằng .jpg hoặc .jpeg
+-> Khi đó bạn đặt filter chỉ nhận các sự kiện có object key kết thúc bằng jpeg 
+
+3. Các Destinations có thể nhận Event Notification
+- S3 có thể gửi các thông báo sự kiện đến 3 loại dịch vụ chính:
+| Loại đích đến                         | Chức năng chính                                                                        |
+| ------------------------------------- | -------------------------------------------------------------------------------------- |
+| **SNS (Simple Notification Service)** | Gửi thông báo dạng publish/subscribe (đẩy thông báo đến nhiều người hoặc hệ thống).    |
+| **SQS (Simple Queue Service)**        | Đưa thông báo vào hàng đợi để xử lý sau, đảm bảo không mất dữ liệu.                    |
+| **Lambda Function**                   | Kích hoạt một hàm Lambda để xử lý tự động (ví dụ: resize ảnh, ghi log, xử lý dữ liệu). |
+- GHI NHỚ: Bạn có thể tạo nhiều Event Notification khác nhau, và gửi chúng đến nhiều đích đến khác nhau tùy theo mục đích 
+
+4. Thời gian phản hồi của Event Notifications
+- Các sự kiện thường được gửi đến đích trong vòng vài giây 
+- Tuy nhiên, trong một số trường hợp, có thể mất đến một phút hoặc lâu hơn để thông báo được gửi đi 
+-> Vì vậy, S3 Event Notifications không phải là hệ thống real-time tuyệt đối, nhưng rất gần thời gian thực (near real-time)
+
+5. Phân quyền và chính sách truy cập (IAM và Resource Policies)
+- Để S3 có thể gửi thông báo đến các dịch vụ khác như SNS, SQS, hoặc Lambda, bạn cần đảm bảo S3 có quyền để thực hiện hành động đó 
+- Tuy nhiên, chúng ta không dùng IAM Role cho S3 trong trường hợp này. Thay vào đó ta sử dụng Resource-based Policy gắn trực tiếp vào dịch vụ đích 
+| Dịch vụ đích        | Loại chính sách cần thêm       | Mục đích                                  |
+| ------------------- | ------------------------------ | ----------------------------------------- |
+| **SNS Topic**       | **SNS Resource Access Policy** | Cho phép S3 gửi message vào SNS topic.    |
+| **SQS Queue**       | **SQS Resource Access Policy** | Cho phép S3 gửi dữ liệu vào hàng đợi SQS. |
+| **Lambda Function** | **Lambda Resource Policy**     | Cho phép S3 gọi (invoke) hàm Lambda.      |
+- Ví dụ: Nếu bạn muốn S3 gửi thông báo đến một SNS Topic, bạn cần gắn vào topiuc đó một Resource Policy có dạng như sau:
+    {
+        "Effect": "Allow",
+        "Principal": {"Service": "s3.amazonaws.com"},
+        "Action": "sns:Publish",
+        "Resource": "arn:aws:sns:us-east-1:123456789012:MyTopic"
+    }
+-> Nhờ đó, S3 mới được phép gửi thông báo đến SNS 
+
+6. Mở rộng: Amazon EventBridge Integration 
+- Ngoài 3 đích đến truyền thống, hiện nay Amazon S3 còn tích hợp sẵn với Amazon EventBridge 
+- Điều này có nghĩa là:
+    + Mọi sự kiện xảy ra trong S3 đều tự động được gửi đến EventBridge, dù bạn có bật Event Notification hay không 
+    + Từ EventBridge, bạn có thể tạo rules để gửi các sự kiện này đến hơn 18 dịch vụ AWS khác nhau 
+- VD Các dịch vụ đích:
+    + AWS Step Functions 
+    + Amazon Kinesis Data Streams 
+    + Amazon Firehose 
+    +....
+
+7. Lợi ích khi dùng EventBridge
+- EventBridge cung cấp nhiều tính năng nâng cao hơn so với Event Notification thông thường: 
+| Tính năng             | Event Notification (truyền thống)         | EventBridge                                                                         |
+| --------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Filtering**         | Cơ bản (chỉ lọc theo tiền tố hoặc hậu tố) | Nâng cao (lọc theo metadata, kích thước, tên đối tượng, v.v.)                       |
+| **Destinations**      | SNS, SQS, Lambda                          | 18+ dịch vụ khác nhau                                                               |
+| **Khả năng mở rộng**  | Giới hạn                                  | Mở rộng mạnh mẽ                                                                     |
+| **Tính năng bổ sung** | Không có                                  | Có thể **lưu trữ (archive)**, **phát lại (replay)**, **đảm bảo độ tin cậy cao hơn** |
+-> Nhờ đó, EventBridge giúp bạn xây dựng kiến trúc phản ứng theo sự kiện (event-driven architecture) mạnh mẽ và linh hoạt hơn nhiều 
+
