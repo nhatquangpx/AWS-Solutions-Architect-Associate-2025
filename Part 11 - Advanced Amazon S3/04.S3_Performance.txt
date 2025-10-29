@@ -1,0 +1,78 @@
+        ### Mục tiêu bài học ###
+- Hiểu rõ hiệu năng mặc định của Amazon S3, bao gồm tốc độ phản hồi và giới hạn yêu cầu mỗi giây 
+- Biết ý nghĩa của "per second per prefix" trong hiệu năng của S3 
+- Hiểu và áp dụng được các kỹ thuật tối ưu hiệu năng:
+    + Multi-part upload - tải lên tệp lớn theo từng phần song song 
+    + Transfer Acceleration - tăng tốc truyền tải nhờ mạng nội bộ AWS 
+    + Byte Range Fetches - tải xuống song song các phần dữ liệu cụ thể của tệp
+
+1. Hiệu năng cơ bản của Amazon S3 
+- Amazon S3 được thiết kế để tự động mở rộng quy mô (automatically scale) nhằm đáp ứng một số lượng yêu cầu cực kỳ lớn mà không cần bạn cấu hình gì thêm 
+- Thời gian phản hồi trung bình (latency) của S3 là 100-200 ms để nhận byte đầu tiên khi truy xuất một đối tượng 
+-> Đây là tốc độ rất nhanh, đảm bảo trải nghiệm tốt ngay cả khi có hàng triệu object trong bucket 
+- Số lượng yêu cầu tối đa mỗi giây:
+    + PUT/COPY/POST/DELETE - 3500 requests/second/prefix
+    + GET/HEAD - 5500 req/sec/pre 
+-> Con số này áp dụng cho mỗi prefix trong bucket và không có giới hạn về số lượng prefix - tức có thể mở rộng gần như vô hạn 
+
+2. Hiểu khái niệm "per prefix" trong Amazon S3 
+- Prefix: Đường dẫn nằm giữa tên bucket và tên tệp (object key)
+- Ví dụ: 
+    + Object key: folder/sub1/file.jpg
+    -> Prefix: folder/sub1/
+- Ví dụ minh họa: Giả sử bạn có 4 tệp trong bucket:
+    + /folder1/sub1/file
+    + /folder1/sub2/file
+    + /folder2/sub1/file
+    + /folder2/sub2/file
+Mỗi tệp thuộc một prefix khác nhau, nên mỗi prefix sẽ có:
+    + 3500 PUT/COPY/POST/DELETE req/sec 
+    + 5500 GET/HEAD req/sec
+Nếu bạn phân bố tải đều giữa 4 prefix này, tổng hiệu năng đạt được sẽ là:
+    4 x 5500 = 22.000 GET/HEAD req/sec 
+=> Càng chia nhỏ dữ liệu re prefix, càng tận dụng tối đa hiệu năng của Amazon S3 
+
+3. Tối ưu hiệu năng tải lên 
+- Multi-Part Upload: Kỹ thuật tải tệp lên theo nhiều phần song song, giúp tận dụng tối đa băng thông mạng 
+- Quy tắc sử dụng:
+    + Khuyến nghị sử dụng cho các tệp > 100 MB 
+    + Bắt buộc sử dụng cho các tệp > 5 GB
+- Cách hoạt động:   
+    + Bạn có 1 tệp lớn
+    + S3 chia tệp này thành nhiều parts nhỏ hơn 
+    + Các parts được tải lên song song (parallel upload)
+    + Khi tất cả các phần hoàn thành, S3 tự động ghép chúng lại thành một tệp hoàn chỉnh 
+- Lợi ích:
+    + Tăng tốc độ tải lên đáng kể 
+    + Tận dụng tối đa băng thông mạng 
+    + Giảm rủi ro khi một phần tải thất bại (chỉ cần tải lại phần đó, không cần tải lại toàn bộ file)
+
+4. Tăng tốc truyền tải qua mạng (S3 Transfer Acceleration)
+- S3 Transfer Acceleration được dùng để tăng tốc độ upload và download dữ liệu bằng cách truyền dữ liệu qua mạng lưới biên (edge locations) của AWS 
+- AWS hiện có hơn 200 edge locations trên toàn cầu và con số này liên tục tăng 
+- Cơ chế hoạt động:
+    + Giả sử bạn có người dùng ở Mỹ và Bucket S3 nằm ở Australia 
+    + Thay vì gửi dữ liệu trực tiếp qua Internet toàn cầu, bạn sẽ:
+        . Upload file đến edge location gần bạn nhất (ở Mỹ)
+        . Edge location sẽ gửi dữ liệu đến bucket ở Australia qua mạng nội bộ tốc độ cao của AWS (AWS private network)
+    + Kết quả:
+        . Giảm tối đa thời gian upload/download
+        . Tăng tốc độ truyền nhờ giảm thiểu việc đi qua Internet công cộng 
+- Tương thích: Transfer Acceleration tương thích hoàn toàn với Multi-Part upload 
+-> Bạn có thể kết hợp cả 2 kỹ thuật để đạt hiệu năng tối đa 
+
+5. Tối ưu hiệu năng tải xuống 
+- S3 Byte-Range Fetches: kỹ thuật này cho phép bạn tải xuống từng phần (byte range) của tệp trong S3, thay vì tải toàn bộ 
+- Công dụng chính:
+    + Tăng tốc độ tải xuống:
+        . Bạn có thể chia file ra thành nhiều đoạn, rồi tải song song từng đoạn
+        . Sau đó, bạn ghép lại thành file hoàn chỉnh
+        -> Tương tự Multi-part upload 
+    + Tăng độ bền: Nếu một phần tải bị lỗi, bạn chỉ cần tải lại đoạn đó, không cần toàn bộ file 
+    + Chỉ lấy một phần file: Nếu bạn chỉ cần header của tệp (vd: 50 byte đầu tiên chứa metadata), bạn có thể chỉ yêu cầu byte range tương ứng -> giúp tiết kiệm thời gian và băng thông 
+- Ví dụ: Giả sử có một tệp video lớn trong S3:
+    + Chỉ muốn xem trước thông tin metadata ở phần đầu
+    -> Gửi yêu cầu GET với byte range = 0-50
+    + Nếu muốn tải nhanh toàn bộ video
+    -> Gửi nhiều yêu cầu song song cho các byte ranges khác nhau (0-10MB, 10-20MB,...)
+S3 sẽ phản hồi từng phần riêng biệt và bạn ghép lại ở phía client
