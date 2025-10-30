@@ -1,0 +1,59 @@
+        ### Mục tiêu bài học ### 
+- Hiểu được S3 Batch Operation là gì và khi nào nên dùng 
+- Nắm rõ các usecase phổ biến của S3 Batch như mã hóa hàng loạt, thay đổi metadata hoặc kích hoạt Lambda 
+- Biết cách tạo danh sách đối tượng đầu vào (object list) cho batch operation thông qua S3 Inventory và Athena 
+- Hiểu lí do vì sao nên dùng batch operation thay vì tự viết script để thực hiện các tác vụ hàng loạt 
+
+1. Khái niệm cơ bản
+- S3 Batch Operations cho phép bạn thực hiện các thao tác hàng loạt trên các đối tượng đã có trong Amazon S3 chỉ với một yêu cầu duy nhất 
+- Nói cách khác: Thay vì phải xử lí từng file một (rất tốn thời gian), bạn chỉ cần tạo một "job" - và S3 sẽ tự động thực thi thao tác đó cho toàn bộ danh sách các object mà bạn chỉ định 
+
+2. Usecases 
+- Chỉnh sửa metadata hoặc properties của nhiều đối tượng cùng lúc
+-> Ví dụ: Thay đổi content-type, storage class hoặc thêm metadata tùy chỉnh cho hàng nghìn file 
+- Sao chép các object giữa các bucket trong S3 một cách hàng loạt 
+-> Thay vì dùng script copy từng file, S3 Batch sẽ thực hiện tất cả tự động 
+- Mã hóa tất cả các đối tượng chưa được mã hóa trong bucket 
+-> Đây là ví dụ rất quan trọng trong kì thi, vì bảo mật luôn là chủ đề trọng tâm của AWS 
+- Sửa đổi quyền truy cập (ACLs) hoặc thẻ tags của nhiều đối tượng cùng lúc
+- Khôi phục nhiều object được lưu trong S3 Glacier - giúp tiết kiệm thời gian đáng kể so với việc gọi restore thủ công cho từng file 
+- Kích hoạt (invoke) Lambda function cho từng đối tượng 
+-> Tức là bạn có thể chạy bất kỳ hành động tùy chỉnh nào trên mỗi object trong batch job 
+
+3. Cấu trúc của một S3 Batch Job 
+- Một batch job trong S3 bao gồm:
+    + Danh sách object cần xử lý 
+    + Hành động muốn thực hiện (copy, encrypt, invoke Lambda...)
+    + Các tham số tùy chọn như thông tin báo cáo, thông báo hoàn thành,... 
+- Khi job được tạo, S3 Batch Operations sẽ tự động thực hiện tất cả các bước trên toàn bộ danh sách này 
+
+4. Tại sao nên dùng S3 Batch Operations thay vì tự viết script?
+- Bạn có thể tự viết script bằng SDK hoặc CLI để lặp qua từng project, nhưng S3 Batch Operations có những lợi thế rất lớn:
+    + Tự động quản lý retry (thử lại khi thất bại)
+    + Theo dõi tiến độ (progress tracking) dễ dàng 
+    + Gửi thông báo hoàn thành sau khi job kết thúc 
+    + Sinh báo cáo kết quả 
+    + Tích hợp sâu với các dịch vụ AWS khác, giúp đảm bảo độ tin cậy và tính sẵn sàng cao 
+
+5. Cách tạo danh sách đối tượng đầu vào cho Batch Job 
+- Để thực hiện batch operation, bạn cần một danh sách các object. Danh sách này thường được tạo ra nhờ 2 công cụ sau:
+5.1 S3 Inventory
+- S3 Inventory là một tính năng giúp bạn liệt kê tất cả các đối tượng trong bucket (bao gồm metadata, thông tin mã hóa, ACL,...)
+- Nó được lưu trữ dưới dạng file CSV hoặc Parquet trong một bucket S3 khác 
+5.2 Athena 
+- Sau khi có danh sách từ S3 Inventory, bạn có thể dùng Athena để truy vấn và lọc dữ liệu 
+- Ví dụ: Lọc ra tất cả các đối tượng chưa được mã hóa (unencrypted objects)
+-> Kết quả của truy vấn này sẽ được dùng làm input cho S3 Batch Operation 
+
+6. Quy trình tổng quát của một S3 Batch Operation 
+- Dưới đây là luồng xử lý tổng quát:
+    1. Tạo danh sách object bằng S3 Inventory 
+    2. Truy vấn và lọc danh sách bằng Athena (chỉ lấy những file cần thao tác)
+    3. Truyền danh sách đó vào S3 Batch Operation, cùng với:
+        + Loại hành động muốn thực hiện (copy, encrypt, invoke Lambda...)
+        + Các tham số cấu hình cần thiết (vd: quyền truy cập, thông báo...)
+    4. S3 Batch Operation thực thi tất cả các tác vụ 
+    5. Theo dõi tiến trình, nhận thong báo và xem báo cáo hoàn tất 
+
+7. Ví dụ minh họa quan trọng 
+- Một usecase điển hình và hay xuất hiện trong đề thi là: Tìm tất cả các đối tượng chưa được mã hóa bằng S3 Inventory, sau đó dùng S3 Batch Operation để mã hóa tất cả chúng một lần duy nhất 
