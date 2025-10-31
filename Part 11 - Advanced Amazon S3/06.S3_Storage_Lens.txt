@@ -1,0 +1,122 @@
+        ### Mục tiêu bài học ###
+- Chức năng và mục đích của S3 Storage Lens
+- Cách thức hoạt động và cấu trúc của dashboard
+- Các loại metrics mà Storage Lens cung cấp
+- Phân biệt rõ Free Metrics và Advanced (Paid) Metrics 
+- Các usecase thực tế để tối ưu chi phí, tăng cường bảo mật và phát hiện bất thường 
+
+1. Tổng quan về S3 Storage Lens 
+- S3 Storage Lens là một dịch vụ giúp bạn hiểu, phân tích và tối ưu hóa việc lưu trữ dữ liệu trên S3, không chỉ trong một bucket hay một tài khoản mà trên toàn bộ AWS 
+- Với công cụ này, bạn có thể:
+    + Phát hiện bất thường (discover anomalies) trong việc lưu trữ dữ liệu 
+    + Xác định cơ hội tiết kiệm chi phí (identify cost efficiencies)
+    + Áp dụng các best practices về bảo vệ dữ liệu trên toàn bộ hệ thống AWS của bạn 
+- Bạn sẽ nhận được các chỉ số ứng dụng và hoạt động trong 30 ngày gần nhất. có thể tổng hợp (aggregate) dữ liệu ở nhiều cấp độ khác nhau:
+    + Toàn bộ organization 
+    + Một account cụ thể 
+    + Một region, bucket hoặc thậm chí prefix (tiền tố của object key)
+- Tất cả dữ liệu này có thể được hiển thị trên dashboard - bạn có thể sử dụng dashboard mặc định hoặc tự custom 
+- Cuối cùng, tất cả metrics và reports này đều có thể được xuất ra S3 bucket dưới dạng CSV hoặc Parquet file, phục vụ cho việc phân tích sâu hơn bằng các công cụ như Athena hoặc QuickSight 
+
+2. Cách hoạt động của S3 Storage Lens 
+- Storage Lens thu thập dữ liệu từ toàn bộ organization, bao gồm các accounts, regions, buckets
+- Sau đó, nó aggregate các dữ liệu này lại thành báo cáo chi tiết 
+- Các báo cáo này cung cấp insights (thông tin chuyên sâu) để giúp bạn:
+    + Phát hiện bất thường
+    + Tăng cường bảo vệ dữ liệu 
+    + Tối ưu chi phí 
+    + Nâng cao hiệu suất lưu trữ 
+=> Nhờ đó, bạn có thể tối ưu hóa việc sử dụng Amazon S3 trong toàn bộ hệ thống AWS của mình 
+
+3. Dashboard của S3 Storage Lens 
+- Khi sử dụng Storage Lens, bạn sẽ có:
+    + Một dashboard mặc định được tạo sẵn bởi Amazon S3 
+    + Dashboard này hiển thị dữ liệu tổng hợp trên nhiều region và nhiều account 
+    + Bạn không thể xóa dashboard mặc định, nhưng có thể disable nếu muốn 
+- Trong giao diện người dùng, bạn có thể chọn:
+    + Region bạn muốn xem 
+    + Tài khoản cụ thể 
+    + Các bucket, storage class... mà bạn muốn phân tích 
+- Đây là cấu hình tập trung (centralize configuration), nghĩa là bạn chỉ cần thao tác ở một nơi để xem toàn bộ dữ liệu 
+- Dashboard cung cấp cho bạn nhữg thông tin tổng hợp như:
+    + Tổng dung lượng lưu trữ 
+    + Số lượng đối tượng 
+    + Kích thước trung bình của object 
+    + Số lượng bucket 
+    + Số lượng accounts 
+- Bạn có thể xem chi tiết theo từng tài khoản hoặc từng region 
+
+4. Các loại metrics trong S3 Storage Lens 
+
+4.1. Summary Metrics 
+- Cung cấp cái nhìn tổng quan về S3 Storage 
+- Ví dụ:
+    + Storage Bytes -> tổng dung lượng lưu trữ 
+    + Object Count -> Số lượng object trong S3 
+- Usecase:
+    + Phát hiện bucket phát triển nhanh nhất 
+    + Xác định bucket nào không được sử dụng (nếu Storage Bytes hoặc Object Count không thay đổi)
+
+4.2. Cost Optimization Metrics 
+- Giúp quản lý và tối ưu hóa chi phí lưu trữ 
+- Ví dụ:
+    + Non-current version storage bytes -> Dung lượng chiếm bởi các phiên bản cũ (non-current versions)
+    + Incomplete multipart upload storage bytes -> Dung lượng chiếm bởi các upload chưa hoàn tất 
+- Usecase:  
+    + Phát hiện các bucket có upload thất bại để dọn dẹp 
+    + Xác định object nào có thể chuyển sang lớp lưu trữ rẻ hơn (vd từ Standard sang Glacier)
+
+4.3. Data Protection Metrics 
+- Cung cấp insight về các tính năng bảo vệ dữ liệu 
+- Ví dụ:
+    + Versioning-enabled bucket count -> Đếm số bucket đã bật versioning 
+    + NFA Delete-enabled bucket count -> Đếm số bucket bật MFA Delete 
+    + SEE-KMS enabled bucket count -> Đếm số bucket bật mã hóa bằng KMS 
+    + Cross-region replication rule count -> Đếm số quy tắc replication giữa các vùng 
+- Usecase: Phát hiện các bucket chưa tuân thủ best practices về bảo vệ dữ liệu, ví dụ chưa bật versioning hoặc encryption 
+
+4.4. Access Management Metrics 
+- Cho biết ai sở hữu và kiểm soát quyền truy cập của bucket 
+- Usecase: Xác định bucket nào có cài đặt quyền sở hữu (ownership settings) chưa đúng chuẩn 
+
+4.5. Event metrics
+- Cung cấp insight về S3 Event Notifications
+- Usecase: Kiểm tra xem có bao nhiêu bucket đã cấu hình event notifications 
+
+4.6. Performance Metrics 
+- Cho biết hiệu suất S3, đặc biệt là Transfer Acceleration 
+- Usecase: Xác định bucket nào đã bật S3 Transfer Acceleration 
+
+4.7. Activity Metrics 
+- Ghi nhận hoạt động truy cập và yêu cầu trên S3:
+    + GET requests, PUT requests
+    + Bytes downloaded, Bytes uploaded...
+- Bao gồm cả HTTP status codes:
+    + 200 OK, 403 Forbidden...
+- Usecase: Hiểu rõ mức độ truy cập và kiểu sử dụng của các bucket 
+
+5. Phân biệt Free Metrics và Advanced Metrics 
+| **Tiêu chí**                  | **Free Metrics**                             | **Advanced (Paid) Metrics & Recommendations**                                           |
+| ----------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Trạng thái**                | Có sẵn tự động cho mọi khách hàng            | Tính phí                                                                                |
+| **Số lượng chỉ số**           | Khoảng **28 chỉ số sử dụng (usage metrics)** | Bao gồm thêm **activity**, **cost optimization**, **data protection**, **status codes** |
+| **Thời gian lưu trữ dữ liệu** | 14 ngày                                      | 15 tháng                                                                                |
+| **Khả năng truy cập dữ liệu** | Chỉ trong dashboard                          | Có thể **xuất ra CloudWatch**                                                           |
+| **Phạm vi thu thập**          | Ở cấp bucket hoặc account                    | **Chi tiết đến prefix level** trong bucket                                              |
+
+6. Tóm tắt nội dung chính
+- S3 Storage Lens giúp bạn phân tích, giám sát và tối ưu hóa việc lưu trữ trên S3 trong toàn bộ tổ chức AWS 
+- Có dashboard mặc định hiển thị dữ liệu trên nhiều region và account (có thể tắt nhưng không thể xóa)
+- Hỗ trợ nhiều nhóm metrics khác nhau:
+    + Summary, Cost Optimization, Data Protection, Access, Event, Performance, Activity 
+- Có 2 loại metrics:
+    + Free (miễn phí, 14 ngày)
+    + Advanced (trả phí, 15 tháng, nhiều chỉ số nâng cao hơn, tích hợp CloudWatch)
+- Các báo cáo có thể xuất ra CSV hoặc Parquet trong S3 Bucket 
+
+7. ĐIỂM GHI NHỚ CHO KỲ THI 
+- Storage Lens = phân tích và tối ưu hóa toàn bộ hệ thống S3 
+- Default dashboard: bao phủ nhiều account & region, không xóa được 
+- Phân biệt rõ Free và Advanced metrics 
+- Có thể đếm số bucket bật versioning, encryption, MFA Delete...
+- Có thể phát hiện bucket không sử dụng hoặc lưu trữ dư thừa 
