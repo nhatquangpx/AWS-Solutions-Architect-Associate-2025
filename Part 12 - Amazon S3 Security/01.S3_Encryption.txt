@@ -1,0 +1,117 @@
+        ### Mục tiêu bài học ###
+- Hiểu được 4 phương pháp mã hóa dữ liệu trong Amazon S3 
+- Nắm được nguyên lý hoạt động của từng loại mã hóa: SSE-S3, SSE-KMS, SSE-C, và Client-Side Encryption.
+- Biết cách thiết lập và bảo vệ dữ liệu khi truyền tải (Encryption in Transit) bằng HTTPS 
+- Phân biệt được trường hợp sử dụng phù hợp của từng loại mã hóa - một điểm rất dễ bị hỏi trong kỳ thi AWS 
+
+1. Tổng quan về Object Encryption 
+- Amazon S3 cho phép bạn mã hóa các objects được lưu trữ trong bucket bằng 4 phương pháp khác nhau 
+- Việc mã hóa giúp đảm bảo dữ liệu của bạn an toàn, không bị đọc hoặc chỉnh sửa bởi người không được phép 
+- 4 phương pháp đó là:
+    + Server-Side Encryption (SSE) - Mã hóa phía server (bảo gồm SSE-S3, SSE-KMS, SSE-C)
+    + Client-Side Encryption (CSE) - Mã hóa phía client (trước khi upload lên S3)
+
+2. Server-Side Encryption 
+- Đây là nhóm phổ biến nhất. Khi bạn dùng SSE, Amazon S3 sẽ chịu trách nhiệm mã hóa dữ liệu sau khi nhận được nó và giải mã khi bạn tải xuống 
+
+2.1. SEE-S3 (Server-Side Encryption with Amazon S3-managed keys)
+- Đây là loại đơn giản nhất và được bật mặc định cho các bucket và object mới 
+- Trong mô hình này, AWS sở hữu và quản lý toàn bộ khóa mã hóa - bạn không có quyền truy cập vào khóa này 
+- Cách thức hoạt động:
+    1. Khi bạn upload file lên S3, bạn có thể chỉ định header:
+        x-amz-server-side-encryption: AES256 
+    để yêu cầu S3 mã hóa dữ liệu 
+    2. Amazon S3 sẽ ghép file với khóa do S3 sở hữu, rồi mã hóa bằng thuật toán AES-256 
+    3. File mã hóa sẽ được lưu trong bucket của bạn 
+- Ví dụ: Người dùng upload file -> gửi header "AES256" -> Amazon S3 mã hóa bằng khóa riêng của nó -> lưu giữ object đã mã hóa 
+=> Tóm tắt:
+    + Loại mã hóa: AES-256 
+    + Quản lý khóa: do Amazon S3 quản lý 
+    + Bật mặc định: Có 
+    + Đơn giản tự động, phù hợp khi bạn không cần kiểm soát sâu về khóa 
+
+2.2. SEE-KMS (Server-Side Encryption with AWS Key Managment Service)
+- Thay vì để S3 tự quản lý khóa, lần này bạn sử dụng AWS KMS (Key Managment Service) để tạo và quản lý khóa mã hóa 
+- Khi đó bạn có thể kiểm soát ai có thể sử dụng khóa, ghi log việc dùng khóa và theo dõi trong CloudTrail 
+- Cách thức hoạt động:
+    1. Khi upload object, bạn gửi header:
+        x-amz-server-side-encryption: aws:kms 
+    kèm theo thông tin khóa KMS bạn muốn dùng 
+    2. S3 sẽ gọi tới AWS KMS để lấy khóa mã hóa 
+    3. S3 kết hợp object với khóa KMS để tạo bản mã (encrypted file) và lưu trong bucket 
+- Để đọc file, bạn cần có quyền:
+    + Truy cập object trong S3 
+    + Quyền truy cập khóa KMS đã dùng để mã hóa file 
+- Ưu điểm của SSE-KMS:
+    + Quản lý quyền và kiếm soát truy cập khóa rõ ràng 
+    + Mọi thao tác mã hóa/giải mã được ghi lại trong AWS CloudTrail 
+    + Có thể tạo, xóa, giới hạn khóa tùy theo yêu cầu bảo mật 
+- Nhược điểm:
+    + Mỗi lần mã hóa/giải mã, S3 phải gọi API đến KMS, ví dụ:
+        . GenerateDataKey (khi mã hóa)
+        . Decrypt (khi giải mã)
+    + Vì vậy, KMS có giới hạn API call/s (5000-30000 tùy vùng)
+    + Bạn có thể tăng giới hạn này trong Service Quotas Console 
+=> Tóm tắt:
+    + Loại mã hóa: do AWS KMS xử lý 
+    + Quản lý khóa: người dùng (hoặc tổ chức)
+    + Theo dõi bằng CloudTrail: Có 
+    + Phù hợp khi cần kiểm soát, audit và compliance cao 
+
+2.3. SEE-C (Server-Side Encryption with Customer-Provided Keys)
+- Trong loại này, bạn tự tạo và quản lý khóa mã hóa, bên ngoài AWS 
+- Tuy nhiên, AWS S3 vẫn thực hiện quá trình mã hóa phía server, dựa trên khóa bạn gửi tạm thời cùng request upload 
+- Cách hoạt động:
+    1. Khi upload file, bạn gửi kèm khóa mã hóa thông qua HTTP headers 
+    2. Amazon S3 sẽ sử dụng khóa bạn cung cấp để mã hóa dữ liệu 
+    3. Sau khi xong, S3 loại bỏ khóa này - không lưu giữ lại 
+    4. Khi bạn muốn đọc lại object, bạn phải gửi lại đúng khóa đó để giải mã 
+- Yêu cầu bắt buộc:
+    + Vì bạn gửi khóa trong request, bạn phải dùng HTTPS để tránh rò rỉ khóa 
+    + Nếu bạn làm mất khóa - dữ liệu mã hóa không thể phục hồi, AWS cũng không thể giúp bạn 
+=> Tóm tắt:
+    + Mã hóa: phía server (do S3 thực hiện)
+    + Quản lý khóa: người dùng 
+    + AWS không lưu trữ khóa 
+    + Yêu cầu HTTPS 
+    + Phù hợp khi doanh nghiệp có hệ thống quản lý khóa riêng biệt 
+
+3. Client-Side Encryption 
+- Với Client-Side Encryption, việc mã hóa xảy ra trước khi dữ liệu rời khỏi client 
+- Người dùng hoàn toàn chịu trách nhiệm mã hóa và quản lý khóa
+- Cách hoạt động:
+    1. Client sử dụng Client-Side Encryption Library để mã hóa dữ liệu trước khi upload 
+    2. Dữ liệu mã hóa được gửi lên S3 (S3 chỉ lưu bản mã)
+    3. Khi tải xuống, client sẽ dùng khóa riêng của mình để giải mã cục bộ 
+=> Tóm tắt:
+    + AWS không tham gia vào quá trình giải mã/mã hóa 
+    + Toàn bộ chu trình được xử lý bởi client 
+    + Phù hợp khi bạn muốn kiểm soát toàn bộ vòng đời mã hóa và không phụ thuộc vào AWS 
+
+4. Encryption in Transit (Mã hóa khi truyền dữ liệu)
+- Ngoài việc mã hóa khi lưu trữ (at rest), bạn cũng cần bảo vệ dữ liệu khi đang được truyền qua mạng (in transit)
+- Amazon S3 có 2 endpoint:
+    + HTTP (không mã hóa)
+    + HTTPS (được mã hóa bằng SSL/TLS)
+- Khuyến nghị:
+    + Luôn sử dụng HTTPS khi làm việc với Amazon S3 
+    + Đặc biệt, nếu bạn muốn dùng SSE-C, HTTPS bắt buộc vì bạn đang gửi khóa trong request 
+- Cách ép buộc sử dụng HTTPS trong S3: Bạn có thể thêm Bucket Policy để chặn tất cả request HTTP 
+- Ví dụ:
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+                {
+                "Sid": "DenyUnencryptedConnections",
+                "Effect": "Deny",
+                "Principal": "*",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::your-bucket-name/*",
+                "Condition": {
+                    "Bool": { "aws:SecureTransport": "false" }
+                }
+            }
+        ]
+    }
+    + Khi người dùng cố truy cập bằng HTTP -> aws:SecureTransport = false -> request bị từ chối
+    + Khi dùng HTTPS -> true -> request được chấp nhận 
