@@ -1,0 +1,29 @@
+        ### Mục tiêu bài học ###
+- Hiểu sự khác biệt giữa Default Encryption và Bucket Policy trong Amazon S3 
+- Cách S3 mặc điịnh mã hóa dữ liệu (SSE-S3) cho các bucket mới 
+- Cách thay đổi phương thức mã hóa mặc định sang các cơ chế khác như SSE-KMS 
+- Cách dùng Bucket Policy để bắt buộc mã hóa (enforce encryption) đối với tất cả các yêu cầu tải dữ liệu lên S3 
+- Thứ tự đánh giá (evaluation order) giữa Bucket Policy và Default Encryption 
+
+1. Default Encryption - Mã hóa mặc định của S3 
+- Hiện tại, tất cả các S3 bucket mới đều được bật sẵn chế độ mã hóa mặc định. Cụ thể là cơ chế SSE-S3 
+- Cách hoạt động:
+    + Khi bạn tải lên (PUT) một object mới vào bucket, S3 sẽ tự động mã hóa object đó bằng SSE-S3 nếu bạn không chỉ định loại mã hóa khác 
+    + Cơ chế này áp dụng chỉ cho các object mới, không ảnh hưởng đến object đã tồn tại trong bucket 
+- Thay đổi loại mã hóa mặc định: Bạn có thể thay đổi default encryption sang cơ chế khác, chẳng hạn: Từ SSE-S3 -> SSE-KMS (Sử dụng AWS Key Managment Service)
+- Ví dụ: Nếu bạn muốn sử dụng khóa quản lý riêng trong KMS, bạn có thể đặt SSE-KMS làm loại mã hóa mặc định cho bucket 
+Khi đó, mọi object mới được tải lên sẽ tự động được mã hóa bằng khóa KMS mà bạn chỉ định 
+
+2. Bucket Policy - Chính sách bắt buộc mã hóa 
+- Mặc dù default encryption giúp tự động mã hóa object, nhưng nó không ngăn người dùng vô tình tải lên object mà không được mã hóa đúng cách 
+- Vì vậy, chúng ta có thể bổ sung lớp bảo vệ mạnh hơn bằng Bucket Policy, cụ thể là: Deny mọi yêu cầu PUT object không có header mã hóa đúng 
+- VD: Bắt buộc dùng SSE-KMS 
+    Chính sách có thể quy định: Nếu người dùng thực hiện PutObject mà không kèm header "x-amz-server-side-encryption:aws:kms" thì từ chối yêu cầu đó 
+-> Điều này bắt buộc tất cả người dùng chỉ được phép tải lên object với mã hóa SSE-KMS 
+
+3. Thứ tự ưu tiên giữa Default Encryption và Bucket Policy 
+- Điểm quan trọng cần nhớ: Bucket Policy luôn được đánh giá trước Default Encryption 
+- Điều này có nghĩa là:
+    + Khi tải lên 1 object, S3 sẽ kiểm tra Bucket Policy trước 
+    + Nếu Bucket Policy từ chối yêu cầu do không có header mã hóa phù hợp -> yêu cầu bị từ chối ngay 
+    + Chỉ sau khi vượt qua được Bucket Policy, Default Encryption mới được áp dụng (nếu cần)
