@@ -1,0 +1,87 @@
+        ### Mục tiêu bài học ###
+- Khái niệm "Origin" là gì (bao gồm scheme, host, domain, port)
+- CORS hoạt động thế nào để kiểm soát yêu cầu giữa các nguồn khác nhau 
+- Cách thức hoạt động của preflight request (yêu cầu kiểm tra trước)
+- Cách áp dụng CORS trong Amazon S3, lý do tại sao đây là một câu hỏi thường gặp trong kỳ thi SAA-C03
+
+1. Tổng quan về CORS
+- CORS viết tắt của Cross-Origin Resource Sharing, nghĩa là chia sẻ tài nguyên giữa các nguồn khác nhau 
+- Đây là một cơ chế bảo mật dựa trên trình duyệt web, được sử dụng để cho phép hoặc từ chối các yêu cầu HTTP đến một nguồn (origin) khác khi bạn đang truy cập một trang web chính (main origin)
+- Điều này rất quan trọng trong bảo mật web - vì mặc định trình duyệt chỉ cho phép gọi API hoặc tải tài nguyên trong cùng một origin để tránh tấn công Cross-Site Request Forgery (CSRF)
+
+2. Khái niệm về Origin 
+- Một origin được xác định bằng 3 yếu tố 
+    + Scheme/Protocol: ví dụ http hoặc https 
+    + Host/Domain: ví dụ www.example.com 
+    + Port: ví dụ 443 cho HTTPS (mặc định) hoặc 80 cho HTTP 
+- Hai URL được xem là cùng một origin nếu cả 3 yếu tố trên giống nhau 
+- Ví dụ:
+    + https://www.example.com/page1 và https://www.example.com/page2 → cùng origin
+    + https://other.example.com khác origin do khác domain
+
+3. Vấn đề khi khác origin 
+- Khi một trang web tại origin A muốn truy cập dữ liệu (API, ảnh, file,...) ở origin B, thì trình duyệt sẽ chặn yêu cầu đó, trừ khi origin B cho phép bằng cách gửi CORS headers 
+- Header chính được dùng là:
+    Access-Control-Allow-Origin 
+- Ví dụ: Access-Control-Allow-Origin: https://www.example.com hoặc Access-Control-Allow-Origin: * (cho phép tất cả các origin)
+
+4. Cách CORS hoạt động 
+- Giả sử có:
+    + Một web server gốc: https://www.example.com
+    + Một cross-origin server: https://www.other.com
+    + Và một web browser làm cầu nối giữa hai bên 
+- Bước 1: Trình duyệt gửi yêu cầu đến www.example.com để lấy trang index.html 
+- Bước 2: Trong file index.html, có chứa liên kết đến tài nguyên (vd: ảnh) nằm ở www.other.com 
+- Bước 3: Trình duyệt phát hiện đây là một yêu cầu đến cross-origin, nên không gửi ngay yêu cầu chính, mà gửi trước một preflight request (yêu cầu kiểm tra trước)
+Yêu cầu này là một HTTP request kiểu OPTIONS, với nội dung:
+    Origin: https://www.example.com
+- Bước 4: Server tại www.other.com phản hồi bằng CORS headers, ví dụ:
+    Access-Control-Allow-Origin: https://www.example.com
+    Access-Control-Allow-Methods: GET, PUT, DELETE
+-> Điều này có nghĩa là "Tôi (other.com) cho phép origin example.com gửi các yêu cầu GET, PUT, DELETE đến tôi"
+- Bước 5: Nếu trình duyệt thấy phản hồi hợp lệ -> nó cho phép gửi yêu cầu chính thức (GET, POST,...) đến www.other.com 
+Nếu server không trả lại header CORS phù hợp, trình duyệt sẽ chặn yêu cầu đó, và người dùng sẽ không thể tải được tài nguyên 
+
+5. Ứng dụng CORS trong Amazon S3 
+- Trong Amazon S3, CORS đặc biệt quan trọng khi:
+    + Bạn có một bucket chứa website tĩnh (static website)
+    + Và website tĩnh này cần tải hình ảnh, CSS, hoặc file từ một bucket khác 
+- Ví dụ:
+    + Bucket 1: my-bucket-html -> chứa trang web tĩnh (index.html)
+    + Bucket 2: my-bucket-assets -> chứa ảnh, CSS, hoặc file media
+Cả 2 đều bật chế độ Static Website Hosting 
+    Quy trình diễn ra như sau:
+        1. Trình duyệt gửi yêu cầu đến my-bucket-html để tải trang index.html 
+        -> Thành công, file HTML được trả về 
+        2. Trong index.html có thẻ <img> trỏ đến file ảnh trong bucket khác:
+        https://my-bucket-assets.s3-website.amazonaws.com/images/coffee.jpg
+        3. Trình duyệt phát hiện đây là yêu cầu đến origin khác -> gửi preflight request đến bucket my-bucket-assets 
+        4. Nếu bucket my-bucket-assets không có cấu hình CORS hợp lệ, yêu cầu bị từ chối 
+        Ngược lại nếu CORS được bật với header phù hợp, trình duyệt sẽ cho phép tải ảnh
+        . VD cấu hình CORS trong S3:
+            CORS configuration trong S3 (JSON):
+            [
+                {
+                    "AllowedHeaders": ["*"],
+                    "AllowedMethods": ["GET"],
+                    "AllowedOrigins": ["*"],
+                    "ExposeHeaders": []
+                }
+            ]
+            Hoặc để chỉ cho phép một origin cụ thể:
+            [
+                {
+                    "AllowedHeaders": ["*"],
+                    "AllowedMethods": ["GET"],
+                    "AllowedOrigins": ["https://www.example.com"],
+                    "ExposeHeaders": []
+                }
+            ]
+
+6. Ghi nhớ quan trọng cho kỳ thi AWS 
+- CORS là một cơ chế bảo mật phía trình duyệt, không phải tính năng riêng của S3 
+- Để truy cập tài nguyên giữa các bucket khác nhau, bạn phải bật CORS cho bucket đích 
+- Câu hỏi trong kỳ thi thường là: "Tại sao trình duyệt không tải được hình ảnh từ một bucket S3 khác"
+-> Đáp án: Vì CORS chưa được cấu hình cho bucket đích 
+
+
