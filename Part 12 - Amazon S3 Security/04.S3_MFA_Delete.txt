@@ -1,0 +1,43 @@
+        ### Mục tiêu bài học ### 
+- MFA Delete là gì, cơ chế hoạt động của nó 
+- Thời điểm nào MFA Delete được yêu cầu trong quá trình thao tác với S3 
+- Ai có quyền bật hoặc tắt MFA Delete, và điều kiện cần để sử dụng tính năng này 
+- Tại sao MFA Delete là một lớp bảo vệ bổ sung quan trọng cho dữ liệu S3 của bạn 
+
+1. Giới thiệu về MFA Delete 
+- MFA Delete là viết tắt của Multi-Factor Authentication Delete, tức là xóa có xác thực đa yếu tố 
+- Đây là một tính năng bảo mật nâng cao của Amazon S3, giúp bảo vệ dữ liệu của bạn tránh khỏi việc xóa nhầm hoặc xóa trái phép vĩnh viễn 
+- MFA nghĩa là bạn cần nhiều yếu tố xác thực để thực hiện hành động quan trọng, thay vì chỉ cần tên người dùng và mật khẩu 
+- VD: bạn có thể được yêu cầu nhập thêm một mã bảo mật tạm thời (OTP) được tạo bởi:
+    + Một ứng dụng như GG Authenticator, Authy,...
+    + Hoặc một thiết bị phần cứng MFA (vd key bảo mật vật lý)
+
+2. Cách hoạt động của MFA Delete 
+- Khi MFA Delete được bật cho một S3 bucket, Amazon yêu cầu người dùng phải cung cấp mã MFA hợp lệ (tức là mã xác thực 6 chữ số được sinh ra trên thiết bị MFA) trước khi thực hiện các thao tác quan trọng
+- Mục đích chính là: Ngăn chặn việc xóa vĩnh viễn dữ liệu - dù là vô tình hay cố ý 
+- Tức là ngay cả khi 1 người có quyền truy cập cao, họ vẫn phải xác nhận lại bằng mã MFA trước khi xóa hoàn toàn dữ liệu 
+
+3. Khi nào MFA Delete được yêu cầu 
+- MFA Delete không phải lúc nào cũng cần thiết 
+- Amazon S3 chỉ yêu cầu mã MFA trong các thao tác đặc biệt quan trọng và có tính phá hủy cao, cụ thể:
+    1. Bạn muốn xóa vĩnh viễn một phiên bản của object 
+    -> Đây là hành động không thể khôi phục, nên AWS bắt buộc xác thực bằng MFA để tránh mất dữ liệu ngoài ý muốn 
+    2. Khi bạn muốn suspend Versioning (tạm ngưng phiên bản hóa) trên bucket 
+    -> Việc này cũng được xem là nguy hiểm, vì khi Versioning bị tắt, dữ liệu có thể bị ghi đè hoặc mất vĩnh viễn 
+- Các trường hợp không cần MFA Delete:
+    + Bật Versioning cho bucket 
+    + Liệt kê các phiên bản đã xóa 
+-> Lý do: Đây chỉ là các thao tác quanm sát hoặc cấu hình, không ảnh hưởng trực tiếp đến dữ liệu nên không cần xác thực bổ sung 
+
+4. Điều kiện sử dụng MFA Delete 
+- Trước khi bật MFA Delete, bạn phải bật Versioning trên bucket trước 
+- Lý do là vì MFA Delete được thiết kế để bảo vệ các object version, nên nó phụ thuộc vào Versioning 
+
+5. Ai có quyền bật hoặc tắt MFA Delete:
+- Chỉ có chủ sở hữu bucket - tức tài khoản gốc (root account) mới có quyền 
+- Lý do là vì Amazon muốn đảm bảo rằng chỉ có người sở hữu thật sự tài khoản AWS mới có thể thay đổi một tính năng bảo mật mạnh như vậy 
+
+6. Một số điểm cần lưu ý quan trọng 
+- Việc sử dụng root account để bật/tắt MFA Delete không được khuyến khích thường xuyên, vì root account có quyền quá lớn, dễ dẫn đến rủi ro bảo mật. Tuy nhiên trong trường hợp này là bắt buộc, vì chỉ root account mới có thể thao tác 
+- Khi MFA Delete được bật, bạn sẽ thấy trong giao diện AWS S3 (hoặc khi dùng CLI) rằng mọi lệnh xóa vĩnh viễn hoặc tắt versioning đều yêu cầu nhập mã MFA 
+- Mã MFA được sinh ra mỗi 30s nếu dùng GG Authenticator 
