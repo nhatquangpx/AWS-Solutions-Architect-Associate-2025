@@ -1,0 +1,59 @@
+        ### Mục tiêu bài học ###
+- Hiểu mục đích và tầm quan trọng của việc ghi log truy cập trong S3 
+- Biết cách hoạt động của Access Logs - từ việc ghi nhận request đến cách lưu trữ trong bucket khác 
+- Nhận biết lưu ý quan trọng khi cấu hình Access Logs, tránh lỗi nghiêm trọng gây tăng chi phí 
+- Biết cách phân tích log bằng công cụ AWS như Amazon Athena 
+
+1. Khái niệm và mục đích 
+- Amazon S3 Access Logs là cơ chế ghi lại toàn bộ các requests được gửi đến một S3 bucket 
+- Mục đích chính của việc ghi log này là phục vụ công tác audit (kiểm tra và giám sát bảo mật)
+-> Điều này có nghĩa là mọi truy cập đến bucket:
+    + Dù đến từ bất kỳ tài khoản AWS nào 
+    + Dù được cho phép (authorized) hay bị từ chối (denied)
+đều sẽ được ghi lại trong file log và lưu vào một bucket khác trong cùng một AWS Region 
+
+2. Cách hoạt động của Access Logs 
+- Hãy tưởng tượng bạn có một S3 bucket chính (gọi là "App bucket") - đây là nơi bạn lưu trữ dữ liệu thực tế 
+- Bây giờ, bạn bật tính năng Access Logs cho bucket này 
+- Khi đó:
+    + Mỗi khi có 1 request gửi đến bucket. VD: PUT, GET, DELETE 
+    + Amazon S3 sẽ tự động tạo một bản ghi log (log entry) chứa thông tin chi tiết về req đó 
+    + Và lưu file log này vào một bucket khác, gọi là Logging bucket 
+- Từ đó, bạn có thể phân tích dữ liệu log này bằng các công cụ phân tích dữ liệu như Amazon Athena - giúp bạn chạy truy vấn SQL trực tiếp trên file log để rút trích thông tin, chẳng hạn:
+    + Ai đã truy cập?
+    + Từ đâu?
+    + Lúc nào?
+    + Hành động gì được thực hiện?
+
+3. Yêu cầu về vị trí lưu trữ log 
+- Một điểm cần lưu ý: Bucket lưu trữ log (logging bucket) phải nằm cùng Region với bucket được theo dõi 
+- Ví dụ:
+    + Nếu bạn ghi log cho bucket us-east-1, thì Logging bucket cũng phải ở us-east-1
+    + Nếu khác region, quá trình ghi log sẽ không hoạt động 
+
+4. Định dạng của log 
+- Các file Access Log có một định dạng cụ thể giúp bạn đọc hiểu hoặc xử lý bằng phần mềm phân tích 
+- AWS cung cấp tài liệu chi tiết về cấu trúc log ở đường dẫn chính thức (URL được đề cập trong script)
+- Ví dụ, mỗi dòng log thường bao gồm:
+    + Tên bucket
+    + Thời gian truy cập 
+    + IP nguồn của client 
+    + Tên req (GET, PUT, DELETE)
+    + Mã trạng thái phản hồi 
+    + Kích thước dữ liệu truyền tải 
+    + Tên người dùng hoặc tài khoản AWS thực hiện truy cập 
+
+5. Cảnh báo quan trọng - Logging Loop 
+- Đây là lỗi nghiêm trọng nhiều người mắc khi cấu hình Access Logs:
+    Không bao giờ đặt bucket ghi log trùng với bucket mà bạn đang theo dõi 
+- Nếu bạn làm vậy, điều gì sẽ xảy ra?
+    + Giả sử bucket A vừa là App bucket vừa là Logging bucket 
+    + Khi bạn tải lên (PUT) một file, Amazon sẽ ghi log về hành động đó 
+    + Nhưng log đó cũng được ghi vào cùng bucket A 
+    + Mà hành động ghi log này lại được ghi log một lần nữa 
+    + Cứ thế vòng lặp vô tận xảy ra 
+- Kết quả:
+    + Bucket sẽ phình to rất nhanh
+    + Chi phí lưu trữ tăng khủng khiếp 
+    + Và hệ thống có thể sẽ bị quá tải 
+-> Vì vậy, luôn luôn tạo một bucket riêng biệt chỉ dành cho việc ghi log! 
