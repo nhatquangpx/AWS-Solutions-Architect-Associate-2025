@@ -1,0 +1,34 @@
+        ### Mục tiêu bài học ### 
+- Hiểu khái niệm và cách hoạt động của Pre-signed URL 
+- Biết cách tạo Pre-signed URL thông qua Console, CLI hoặc SDK 
+- Nắm được thời gian hiệu lực và các tình huống sử dụng thực tế 
+- Hiểu rõ cách Pre-signed URL giúp bảo mật dữ liệu S3 mà vẫn chia sẻ được linh hoạt 
+
+1. Khái niệm: Pre-signed URL là gì? 
+- Pre-signed URL là một đường dẫn tạm thời được tạo ra cho một object trong Amazon S3 
+- Đường dẫn này cho phép người khác truy cập hoặc tải lên (GET/PUT) file trong một khoảng thời gian giới hạn - mà không cần có tài khoản AWS hoặc quyền truy cập trực tiếp vào S3 bucket 
+- Bạn có thể tạo ra Pre-signed URL thông qua:
+    + AWS Management Console 
+    + AWS CLI
+    + AWS SDK 
+
+2. Thời gian hiệu lực
+- Mỗi Pre-signed URL đều có thời gian hết hiệu lựuc, giúp đảm bảo tính bảo mật 
+    + Khi bạn tạo bằng AWS Console -> thời gian tối đa là 12 giờ 
+    + Khi bạn tạo bằng CLI hoặc SDK -> Có thể kéo dài tối đa 168 giờ - 7 ngày 
+- Sau khi hết hạn, đường link sẽ không thể dùng để tải lên hoặc tải xuống file nữa
+
+3. Cách hoạt động 
+- Khi một người dùng có quyền truy cập đến S3 (vd: bạn - chủ sở hữu bucket hoặc người dùng IAM) tạo ra một Pre-signed URL,
+thì URL này sẽ mang theo (embed) các thông tin xác thực của người tạo, bao gồm quyền truy cập tương ứng 
+- Điều này có nghĩa là: Người nhận URL sẽ kế thừa quyền của người đã tạo URL, nhưng chỉ cho hành động cụ thể (GET hoặc PUT), và chỉ trong thời gina giới hạn 
+
+4. Usecase 
+- Giả sử bạn có một bucket S3 bucket đặt chế độ private. Bạn muốn chia sẻ một file duy nhất cho một người bên ngoài AWS, nhưng không muốn mở quyền public cho tất cả bucket hoặc phá vỡ cấu hình bảo mật hiện có 
+- Khi đó, bạn - với quyền của mình - sẽ:
+    + Chọn file trong S3 bucket 
+    + Tạo Pre-signed URL cho file đó 
+    + Nhận được một đường link đặc biệt, đã được pre-signed bởi S3 
+-> URL này chứa chữ ký xác thực (signature) dựa trên thông tin xác thực của bạn (access key, secret key)
+-> Sau đó bạn gửi link này cho người cần truy cập 
+- Người nhận có thể truy cập, tải file hoặc tải lên file bằng cách dùng link đó, mà không cần biết gì về AWS credentials hoặc quyền IAM 
