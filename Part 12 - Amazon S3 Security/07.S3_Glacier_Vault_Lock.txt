@@ -1,0 +1,67 @@
+        ### Mục tiêu bài học ### 
+- Khái niệm và cơ chế hoạt động của S3 Glacier Vault Lock (Mô hình WORM)
+- Sự khác nhau giữ Vault Lock Policy và S3 Object Lock 
+- Hai chế độ lưu giữ dữ liệu (Compliance Mode và Governance Mode)
+- Cách sửu dụng Legal Hold để bảo vệ dữ liệu vô thời hạn 
+
+1. Giới thiệu về S3 Glacier Vault Lock 
+- Amazon S3 Glacier là dịch vụ lưu trữ dữ liệu lâu dài (archive storage), phù hợp cho các tổ chức cần lưu giữ dữ liệu trong nhiều năm với chi phí thấp 
+- AWS cung cấp một tính năng bảo mật đặc biệt gọi là Vault Lock để áp dụng mô hình WORM (Write Once Read Many)
+- WORM: ghi một lần đọc nhiều lần - khi dữ liệu được ghi vào, nó sẽ không thể bị chỉnh sửa hoặc xóa đi sau đó 
+-> Mô hình này thường được sử dụng trong các tổ chức yêu cầu bảo vệ dữ liệu nghiêm ngặt, ví dụ như dữ liệu tài chính, hồ sơ pháp lý, hoặc dữ liệu cần lưu giữ để tuân thủ luật 
+
+2. Cách hoạt động
+- Khi bạn muốn đảm bảo rằng dữ liệu trong Glacier không bao giờ bị thay đổi hoặc xóa, bạn cần tạo một Vault Lock Policy cho vault (kho lưu trữ) của chính mình 
+- Quy trình hoạt động:
+    1. Tạo Vault Lock Policy cho Glacier Vault 
+    -> Đây là bộ quy tắc xác định cách dữ liệu trong Vault được bảo vệ 
+    2. Khóa policy đó lại 
+    -> Một khi Vault Lock Policy đã được khóa:
+        + Không ai có thể chỉnh sửa hoặc xóa policy đó nữa, kể cả admin hay AWS 
+        + Tất cả dữ liệu được đưa vào vault này không thể bị xóa hoặc chỉnh sửa 
+- Usecase:
+    + Tính năng này đặc biệt hữu ích trong tuân thủ pháp lý (compliance) và bảo vệ dữ liệu dài hạn (data retention)
+    + VD: Lưu trữ dữ liệu kế toán hoặc hồ sơ y tế cần giữ nguyên trong nhiều năm để phục vụ kiểm toán hoặc điều tra 
+
+3. Giới thiệu về S3 Object Lock 
+- Ngoài Glacier, AWS cũng cung cấp một tính năng tương tự cho Amazon S3 buckets - S3 Object Lock 
+- Tuy nhiên, Object Lock phức tạp hơn một chút và có nhiều tùy chọn linh hoạt hơn 
+- Điều kiện tiên quyết: Để kích hoạt S3 Object Lock, bạn phải bật Versioning cho bucket 
+-> Vì Object Lock hoạt động trên từng version của object trong bucket 
+- Khác biệt chính:
+    + Với Glacier Vault Lock, bạn khóa cả Vault 
+    + Với S3 Object Lock, bạn khóa từng object riêng lẻ 
+-> Nhờ đó bạn có thể kiểm soát cụ thể hơn từng file nào được bảo vệ, trong bao lâu 
+
+4. Hai chế độ Retention Mode (Chế độ lưu giữ dữ liệu)
+4.1. Compliance Mode (Chế độ tuân thủ nghiêm ngặt)
+- Tương tự Glacier Vault Lock 
+- Một khi object đã bị khóa trong compliance mode, nó không thể bị ghi đè hoặc xóa bởi bất kỳ ai, kể cả root user, admin hay AWS 
+- Ngoài ra:
+    + Retention mode không thể bị thay đổi 
+    + Thời gian lưu giữ không thể bị rút ngắn 
+- Usecase: Dành cho môi trường yêu cầu tuân thủ nghiêm ngặt như hồ sơ kế toán, chúng từ pháp lý hoặc dữ liệu điều tra 
+4.2. Governance Mode (Chế độ quản trị linh hoạt hơn)
+- Cũng ngăn người dùng thông thường khỏi việc xóa hay thay đổi object 
+- Tuy nhiên, một số người dùng đặc biệt có thể có quyền thay đổi nhờ IAM 
+- Cụ thể: Admin có quyền đặc biệt (IAM permissions) có thể:
+    + Thay đổi thời gian lưu giữ 
+    + Xóa object nếu cần
+- Usecase: Dành cho các doanh nghiệp cần bảo vệ dữ liệu nhưng vẫn cần linh hoạt quản trị nội bộ (VD: quản lý backup, kiểm tra, điều chỉnh thời gian lưu trữ)
+
+5. Retention Period 
+- Cả 2 chế độ trên đều yêu cầu thiết lập một khoảng thời gian lưu trữ 
+- Ví dụ:
+    + Có thể đặt retention = 1 năm, 3 năm hoặc 7 năm 
+    + Trong khoảng thời gian đó, object sẽ không thể bị xóa 
+- Lưu ý: Bạn có thể gia hạn thời gian lưu giữ, nhưng không thể rút ngắn trong compliance mode 
+
+6. Legal Hold (Giữ pháp lý)
+- Đây là một tính năng khác biệt so với 2 chế độ retention ở trên 
+- Định nghĩa: Legal Hold cho phép giữ một object vô thời hạn (indefinitely), bất kể retention mode hay retention period trước đó 
+- Usecase: Bạn có một file quan trọng liên quan đến một vụ kiện pháp lý. Bạn có thể "đóng băng" file đó bằng cách đặt Legal Hold
+-> file sẽ không thể bị xóa hoặc sửa đổi cho đến khi bạn chủ động gỡ bỏ
+- Quản lý Legal Hold:
+    + Để đặt hoặc gỡ Legal Hold, người dùng cần có IAM permission: s3:PutObjectLegalHold 
+    + Khi cuộc điều tra hoặc vụ kiện kết thúc, admin có thể gỡ Legal Hold thông qua cùng quyền này 
+    
