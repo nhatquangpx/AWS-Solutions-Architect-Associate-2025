@@ -1,0 +1,53 @@
+        ### Mục tiêu bài học ###
+- Hiểu rõ S3 Object Lambda là gì và cách hoạt động của nó 
+- Biết cách kết hợp S3 Access Point với AWS Lambda để xử lý dữ liệu theo yêu cầu 
+- Nắm được các trường hợp sử dụng thực tế như làm mờ thông tin nhạy cảm, chuyển đổi định dạng hoặc thêm watermark 
+
+1. Giới thiệu vấn đề 
+- Giả sử bạn có một S3 bucket chứa dữ liệu gốc của doanh nghiệp - ví dụ như dữ liệu thương mại điện tử
+- Một số ứng dụng khác nhau trong tổ chức muốn truy cập cùng dữ liệu đó, nhưng mỗi ứng dụng cần phiên bản khác nhau của dữ liệu 
+- VD:
+    + Ứng dụng E-commerce cần dữ liệu gốc (original)
+    + Ứng dụng Analytics chỉ cần dữ liệu đã xóa thông tin nhạy cảm (redacted)
+    + Ứng dụng Marketing lại cần dữ liệu được làm giàu thêm bằng cơ sở dữ liệu khách hàng thân thiết 
+- Câu hỏi đặt ra là: Chúng ta có nên tạo nhiều bucket riêng biệt để chứa các phiên bản dữ liệu khác nhau không?
+-> Không cần thiết vì điều đó gây tốn kém, khó quản lý và phức tạp về bảo mật 
+- Giải pháp: S3 Object Lambda 
+
+2. Cách hoạt động của S3 Object Lambda 
+- Bước 1: Có một S3 bucket chứa dữ liệu gốc
+    + Giả sử ứng dụng E-commerce sở hữu dữ liệu này 
+    + Ứng dụng này có quyền truy cập trực tiếp vào bucket và có thể PUT hoặc GET object gốc 
+- Bước 2: Một ứng dụng khác cần dữ liệu được chỉnh sửa
+    + VD: Ứng dụng Analytics chỉ cần dữ liệu đã được xóa thông tin nhạy cảm (PII - Personally Identifiable Information)
+    + Thay vì tạo bản sao của bucket và lưu phiên bản "đã làm mờ", ta có thể làm như sau:
+        1. Tạo một S3 Access Point gắn với bucket đó 
+        2. Kết nối Access Point này với một Lambda function 
+            . Lambda function sẽ là nơi chạy đoạn code xử lý dữ liệu động trước khi trả kết quả về cho ứng dụng 
+            . VD: Lambda sẽ lọc bỏ hoặc làm mờ các trường dữ liệu nhạy cảm khi truy xuất 
+        3. Tạo một S3 Object Lambda Access Point trên đỉnh Access Point vừa tạo 
+        Ứng dụng Analytics sẽ truy cập thông qua S3 Object Lambda Access Point này 
+    
+3. Chuỗi hoạt động tổng quát 
+- Khi sử dụng Analytics gửi yêu cầu truy xuất dữ liệu:
+    1. Yêu cầu đi tới S3 Object Lambda Access Point 
+    2. Access Point này gọi hàm Lambda tương ứng 
+    3. Lambda function sẽ:
+        + Lấy dữ liệu gốc từ S3 bucket 
+        + Chạy đoạn mã xử lý, ví dụ như xóa, thay đổi, chuyển đổi hoặc thêm thông tin 
+    4. Lambda trả dữ liệu đã chỉnh sửa về cho ứng dụng Analytics 
+- Kết quả: Ứng dụng Analytics nhận được phiên bản dữ liệu đã được redacted, trong khi dữ liệu gốc vẫn không bị thay đổi trong bucket 
+
+4. Ví dụ mở rộng - Enrichment 
+- Một ứng dụng Marketing có thể cần dữ liệu được làm giàu thêm, ví dụ: Thêm thông tin từ customer loyalty database (CSDL khách hàng thân thiết)
+- Thay vì sao chép và cập nhật lại toàn bộ S3 bucket, ta làm như sau:   
+    + Tạo một Lambda function khác, có nhiệm vụ truy vấn thông tin bổ sung từ database 
+    + Kết nối Lambda này với một S3 Object Lambda Access Point riêng 
+- Khi ứng dụng Marketing truy cập, nó sẽ nhận dữ liệu enriched, được tổng hợp từ cả S3 và cơ sở dữ liệu bên ngoài - mà không cần lưu trữ bản sao dữ liệu mới 
+
+5. Usecases
+- Redacting PII Data: Xóa hoặc ẩn dữ liệu nhận dạng cá nhân khi cung cấp cho môi trường phân tích hoặc thử nghiệm 
+- Chuyển đổi định dạng dữ liệu (Data Transformation): Chuyển đổi XML -> JSON để tương thích với hệ thống mới 
+- Thêm watermark hoặc chỉnh sửa ảnh (Dynamic Image Processing): Tự động thêm watermark vào ảnh khi người dùng tải xuống, mỗi watermark có thể riêng biệt theo người dùng 
+- Thay đổi nội dung động: Điều chỉnh giá sản phẩm hoặc hiển thị nội dung theo ngôn ngữ người dùng mà không cần tạo file mới trong bucket 
+
