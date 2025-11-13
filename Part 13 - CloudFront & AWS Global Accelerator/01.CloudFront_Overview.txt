@@ -1,0 +1,78 @@
+        ### Mục tiêu bài học ###
+- Hiểu rõ CloudFront là gì và mục đích sử dụng của nó 
+- Biết được cách CloudFront cải thiện hiệu suất và giảm độ trễ 
+- Nắm được cấu trúc hoạt động của CloudFront, bao gồm edge locations, origin, cache và Origin Access Control (OAC)
+- Phân biệt được CloudFront với S3 Cross-Region Replication - hai khái niệm rất dễ nhầm trong kỳ thi 
+- Biết usecase của CloudFront và vai trò của nó trong việc bảo vệ ứng dụng khỏi tấn công DDoS 
+
+1. CloudFront là gì?
+- CloudFront là một Content Delivery Network (CDN) - mạng lưới phân phối nội dung của Amazon 
+- Chức năng chính của CloudFront là:
+    + Cải thiện hiệu suất đọc cho người dùng 
+    + Giảm độ trễ truy cập bằng cách lưu trữ tạm (cache) nội dung website tại nhiều vị trí biên (edge locations) trên khắp thế giới 
+- Khi nội dung được cache ở nhiều vị trí toàn cầu, người dùng ở bất kỳ khu vực nào cũng có thể truy cập nhanh hơn - vì dữ liệu không cần di chuyển xa đến máy chủ gốc (origin)
+
+2. Hạ tầng của CloudFront
+- CloudFront bao gồm hàng trăm điểm hiện diện (Point of Presence) trên toàn cầu 
+- Các điểm này bao gồm:
+    + Edge locations: nơi CloudFront lưu cache và phục vụ nội dung cho người dùng cuối 
+    + Regional edge caches: bộ nhớ trung gian giúp tôi ưu hiệu suất và giảm tải cho origin 
+- Việc nội dung được phân tán toàn cầu mang lại thêm một lợi ích lớn - đó là chống tấn công DDoS 
+
+3. Bảo vệ DDoS (Distributed Denial of Service)
+- DDoS là dạng tấn công mà kẻ xấu cố gắng gửi lưu lượng truy cập khổng lồ đến máy chủ của bạn, làm quá tải hệ thống và khiến dịch vụ ngừng hoạt động 
+- Vì CloudFront phân phối ứng dụng của bạn trên phạm vi toàn cầu, nên nó phân tán tải và giảm thiểu tác động của DDoS
+- Ngoài ra, CloudFront còn có thể tích hợp với các dịch vụ bảo mật như:
+    + AWS Shield
+    + AWS Web Application Firewall (WAF)
+
+4. Ví dụ minh họa cách CloudFront hoạt động:
+- Giả sử bạn có:
+    + 1 S3 bucket ở Australia dùng để lưu trữ website 
+    + 1 người dùng ở America muốn truy cập website đó 
+- Cách hoạt động như sau:
+    1. Người dùng ở Mỹ gửi yêu cầu truy cập nội dung 
+    2. CloudFront sẽ chuyển yêu cầu đó đến edge location gần người dùng nhất ở Mỹ 
+    3. Edge location sẽ lấy dữ liệu từ origin ở Australia (vì chưa có cache)
+    4. Sau đó, dữ liệu được lưu tạm tại edge location Mỹ 
+    5. Khi người dùng khác ở Mỹ truy cập cùng nội dung, họ sẽ được phục vụ trực tiếp từ edge cache, không cần gửi yêu cầu về Australia nữa 
+-> Kết quả: tốc độ nhanh hơn, độ trễ thấp hơn, trải nghiệm người dùng tốt hơn 
+
+5. CloudFront Origins - Nguồn dữ liệu gốc 
+- Origin là nơi chưa nội dung gốc mà CloudFront sẽ truy xuất dữ liệu. CloudFront hỗ trợ nhiều loại origin khác nhau:
+a. Amazon S3 bucket:
+- Dùng để phân phối file và cache chúng tại edge 
+- Cũng có thể dùng CloudFront để upload file trực tiếp lên S3 
+- Kết nối giữa CloudFront và S3 được bảo mật thông qua OAC (Origin Access Control)
+- Ngoài ra ta phải chỉnh sửa bucket policy của S3 để chỉ cho phép CloudFront truy cập 
+b. VPC origin (Private application trong VPC)
+- Dành cho ứng dụng được host trong private subnet của VPC 
+- Origin có thể là:
+    + Application Load Balancer (ALB)
+    + Network Load Balancer (NLB)
+    + EC2 instance 
+- CloudFront có thể kết nối private với những tài nguyên này
+c. Custom Origin 
+- Bất kỳ backend nào hỗ trợ HTTP hoặc HTTPS đều có thể làm origin 
+- Ví dụ:
+    + Một website public được host trên S3 (với chế độ Static Website Hosting bật lên)
+    + Hoặc một máy chủ HTTP ngoài AWS 
+
+6. Cách hoạt động tổng quát của CloudFront 
+- CloudFront hoạt động dựa trên mô hình cache thông minh:
+    1. Client gửi yêu cầu HTTP đến edge location gần nhất
+    2. Edge location kiểm tra:
+        + Nếu đã có nội dung trong cache -> trả về ngay 
+        + Nếu chưa có -> CloudFront sẽ gửi yêu cầu đến origin (vd: S3 hoặc HTTP server)
+    3. Sau khi lấy được dữ liệu từ origin, CloudFront lưu nội dung vào cache cục bộ 
+    4. Các yêu cầu sau đó (từ cùng khu vực) sẽ được phục vụ nhanh chóng từ cache 
+
+7. So sánh CloudFront và S3 Cross-Region Replication 
+| Tiêu chí              | CloudFront                                 | S3 Cross-Region Replication                              |
+| --------------------- | ------------------------------------------ | -------------------------------------------------------- |
+| Mục đích              | CDN – phân phối và cache nội dung toàn cầu | Nhân bản (replicate) toàn bộ dữ liệu S3 sang region khác |
+| Phạm vi               | Mạng edge toàn cầu (≈ 216 điểm hiện diện)  | Phải cấu hình thủ công cho từng region                   |
+| Cơ chế                | Cache nội dung tạm thời (thường 1 ngày)    | Sao chép dữ liệu **gần thời gian thực**                  |
+| Loại nội dung phù hợp | Nội dung tĩnh (static) – ít thay đổi       | Nội dung động (dynamic) – thay đổi thường xuyên          |
+| Độ trễ                | Rất thấp trên toàn cầu                     | Thấp nhưng chỉ trong một số region được chọn             |
+| Mục đích sử dụng      | Cung cấp tốc độ và độ sẵn sàng toàn cầu    | Đồng bộ dữ liệu giữa các region (backup, DR, compliance) |
