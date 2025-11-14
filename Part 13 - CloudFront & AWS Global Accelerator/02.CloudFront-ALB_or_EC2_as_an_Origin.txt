@@ -1,0 +1,41 @@
+        ### Mục tiêu bài học ###
+- Hiểu cách CloudFront kết nối đến Application Load Balancer hoặc EC2 instance làm Origin 
+- Sự khác nhau giữa phương pháp mới - VPC Origins và phương pháp cũ - Public Network 
+- Tại sao VPC là cách an toàn, bảo mật và tối ưu nhất để kết nối backend riêng tư với CloudFront 
+- Cơ chế hoạt động mạng khi CloudFront chuyển tiếp request đến backend trong VPC 
+
+1. CloudFront kết nối với ALB/EC2 bằng cách nào?
+- 2 cách:
+    + VPC Origins - cách mới - cho phép CloudFront kết nối trực tiếp với các ứng dụng được host trong private subnets của VPC mà không cần công khai ra Internet 
+    + Public Network - cách cũ 
+
+2. VPC Origins
+- Application Load Balancer, Network Load Balancer, EC2 instances có thể private
+-> Tất cả vẫn an toàn nằm trong private subnet, nhưng CloudFront vẫn truy cập được để phục vụ người dùng toàn cầu 
+- Cách hoạt động:
+    1. Người dùng -> CloudFront (Edge Location)
+    Người dùng ở mọi nơi truy cập vào CloudFront như bình thường 
+    2. CloudFront -> VPC Origin 
+    CloudFront sử dụng "VPC Origin" để tạo kết nối riêng tư (private) đến backend 
+    3. VPC Origin -> ALB/NLB/EC2 trong private subnet 
+    Request được đưa vào hệ thống backend mà không cần bất kỳ thành phần nào phải public 
+=> Lợi ích:
+    + Ứng dụng không phải public, giảm rủi ro bảo mật 
+    + Bạn toàn quyền kiểm soát những gì CloudFront được phép expose 
+    + Kiến trúc an toàn và hiện đại nhất hiện nay trong AWS Networking 
+
+3. Public Network 
+- Trước đây, bắt buộc backend phải Public vì CloudFront chỉ có thể truy cập public IP 
+- Ví dụ:
+    + Trường hợp EC2 làm origin:
+        . EC2 phải public
+        . Sau đó bạn phải lấy danh sách IP Public của CloudFront (từ link AWS cung cấp)
+        . Rồi cấu hình security group của EC2 để chỉ cho phép đúng các IP CloudFront được truy cập 
+    + Trường hợp ALB làm origin:
+        . ALB cũng phải public
+        . EC2 instances phía sau ALB có thể private
+        . Nhưng security group của ALB cũng phải whitelist toàn bộ IP public của CloudFront
+=> Nhược điểm:
+    + Rất tốn công: Phải cập nhật security group nếu AWS thay đổi danh sách IP CloudFront
+    + Nguy cơ bảo mật: Chỉ cần một ai đó thay đổi security group của ALB/EC2 -> Backend có thể lộ ra Internet 
+    + Không còn cần thiết: Vì đã có VPC Origin an toàn hơn, hiện đại hơn 
