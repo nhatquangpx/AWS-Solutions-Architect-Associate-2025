@@ -1,0 +1,31 @@
+        ### Mục tiêu bài học ### 
+- CloudFront Geo Restriction là gì và dùng để làm gì 
+- Hai chế độ giới hạn địa lý: Allowlist và Blocklist 
+- CloudFront xác định quốc gia của người dùng bằng cách nào 
+- Các trường hợp sử dụng thực tế như quản lý nội dung theo luật bản quyền 
+- Cách bật và cấu hình Geo Restriction trong CloudFront Console 
+
+1. CloudFront Geo Restriction là gì?
+- Là chức năng cho phép bạn giới hạn người dùng được phép truy cập CloudFront Distribution dựa trên quốc gia nơi họ gửi request
+- Nói cách khác: bạn có thể chặn hoặc cho phép người dùng theo quốc gia 
+
+2. Hai cơ chế giới hạn địa lý 
+2.1. Allowlist
+- Danh sách quốc gia được phép truy cập 
+-> Người dùng từ các quốc gia k có trong ds này sẽ bị CloudFront chặn 
+2.2. Blocklist 
+- Ngược lại 
+
+3. CloudFront xác định quốc gia như thế nào?
+- Sử dụng csdl Geo-IP của bên thứ 3 
+- CloudFront lấy địa chỉ IP của người dùng -> map vào csdl -> xác định quốc gia 
+- Đây cũng là cơ chế được nhiều dịch vụ CDN và firewall sử dụng 
+
+4. Khi nào nên dùng Geo Restriction 
+- Luật bản quyền (copyright laws): Các quốc gia có quy định riêng về bản quyền nội dung video, âm nhạc, phim... 
+Geo Restriction giúp bạn kiểm soát quốc gia nào đựo xem nội dung 
+
+5. Cách bật và cấu hình Geo Restriction trong CloudFront 
+- B1: Vào mục Security 
+- B2: Tìm mục CloudFront geographic restrictions 
+- B3: Chọn Countries -> Edit 
