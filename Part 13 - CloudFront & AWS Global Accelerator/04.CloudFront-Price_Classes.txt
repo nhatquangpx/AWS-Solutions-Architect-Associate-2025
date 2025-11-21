@@ -1,0 +1,32 @@
+        ### Mục tiêu bài học ### 
+- Vì sao giá CloudFront khác nhau theo từng khu vực trên thế giới 
+- Khái niệm Price Classes trong CloudFront
+- Sự khác nhau giữa Price Class All, Price Class 200, Price Class 100 
+- Cách lựa chọn price class để tối ưu chi phí hoặc tối ưu hiệu năng 
+
+1. CloudFront có edge locations trên toàn thế giới -> giá khác nhau
+- CloudFront phân phối nội dung qua các edge locations trên khắp toàn cầu. Vì chi phí vận hành và hạ tầng khác nhau giữa các khu vực, giá truyền dữ liệu ra (Data Transfer Out) ở từng vùng không giống nhau 
+- VD:
+    + Mỹ, Canada, Mexico: 10TB đầu tiên: $0.085/GB 
+    + Ấn Độ: Cùng lượng dữ liệu nhưng giá cao gấp đôi: $0.17/GB 
+-> edge location càng đắt đỏ về chi phí vận hành, giá CloudFront càng cao 
+
+2. Chuyển càng nhiều dữ liệu -> giá càng giảm 
+- CloudFront áp dụng lũy tiến giảm giá theo dung lượng:
+    + Nếu bạn truyền trên 5 petabytes. tại Mỹ mức giá giảm còn 0.02$/GB 
+
+3. Điều này dẫn đến khái niệm Price Class 
+- Do giá giữa các khu vực khác nhau, AWS cung cấp cơ chế Price Class để bạn tự chọn: Bạn được quyền quyết định CloudFront sẽ dùng edge locations ở những khu vực nào nhằm giảm chi phí 
+- Có 3 lựa chọn: 
+3.1. Price Class All 
+- Bao gồm tất cả edge locations trên toàn thế giới 
+- Mang lại hiệu năng tốt nhất vì người dùng luôn được phục vụ từ vị trí gần nhất 
+- Nhưng chi phí cao hơn vì một số khu vực rất đắt đỏ 
+-> Dùng khi bạn ưu tiên hiệu năng toàn cầu, không ưu tiên tiết kiệm 
+3.2. Price Class 200 
+- Bao gồm đa số vùng 
+- Nhưng loại bỏ những vùng có chi phí cao nhất 
+-> Cân bằng giữa hiệu năng và chi phí 
+3.3. Price Class 100 
+- Chỉ sử dụng những vùng rẻ nhất, chủ yếu là Bắc Mỹ và Châu Âu 
+-> Thích hợp khi người dùng chủ yếu ở Mỹ hoặc EU và bạn muốn tiết kiệm tối đa 
