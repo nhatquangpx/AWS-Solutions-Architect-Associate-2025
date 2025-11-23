@@ -1,0 +1,47 @@
+        ### Mục tiêu bài học ### 
+- CloudFront hoạt động thế nào khi backend origin thay đổi 
+- Vì sao CloudFront không tự biết ngay nội dung mới khi TTL chưa hết 
+- Khái niệm cache invalidation và lý do cần dùng 
+- Cách hoạt động của invalidation: quá trình xóa cache, cập nhật content mới 
+- Sự khác biệt giữa invalidating toàn bộ và invalidating các đường dẫn cụ thể 
+
+1. Vấn đề khi cập nhật backend origin 
+- CloudFront luôn có backend origin (VD: S3, EC2, ALB...)
+- Khi bạn cập nhật dữ liệu ở backend origin, CloudFront không tự biết ngay 
+- Lí do: mỗi edge location có cache riêng, và chỉ khi TTL của cache hết hạn thì nó mới tự động lấy nội dung mới về 
+-> Điều này có thể không phù hợp, vì bạn muốn người dùng được thấy nội dung mới ngay lập tức, không phải chờ TTL 
+
+2. Giải pháp: Invalidation (xóa cache chủ động)
+- Để ép CloudFront lấy nội dung ngay lập tức, thực hiện CloudFront Invalidation 
+- Invalidation cho phép:
+    + Xóa toàn bộ cache 
+    + Xóa 1 phần cache theo đường dẫn bạn chỉ định 
+- Khi invalidation diễn ra, CloudFront bỏ qua TTL hiện có, xóa ngay dữ liệu cũ khỏi cache 
+
+3. Invalidate theo đường dẫn 
+- Khi tạo invalidation, bạn cung cấp file path:
+    + Xóa tất cả mọi thứ: *
+    + Xóa toàn bộ ảnh trong thư mục: /images/*
+    + Xóa một file cụ thể: /index.html
+
+4. Minh họa hoạt động của invalidation 
+- Trước khi invalidation, bạn có:
+    + Một CloudFront distribution 
+    + 2 edge locations 
+    + Mỗi edge có cache chứa:
+        . index.html
+        . Các file ảnh trong thư mục /images/ 
+    + TTL mặc định 1 ngày 
+- Bạn cập nhật nội dung:
+    + Cập nhật file index.html trong S3 
+    + Thêm/đổi một số ảnh trong thư mục /images/ 
+- Bạn tạo invalidation, gửi 2 yêu cầu:
+    + Invalidate file HTML cụ thể: /index.html 
+    + Invalidate tất cả ảnh trong thư mục: /images/ 
+- Sau invalidation, khi một người gửi request:
+    + Edge location nhận request.
+    + Nó kiểm tra cache → file không còn (do đã bị invalidated).
+    + Nó gửi request về origin (S3).
+    + Lấy phiên bản mới nhất của index.html hoặc các file ảnh.
+    + Lưu lại file mới vào cache.
+    + Trả nội dung mới cho người dùng.
