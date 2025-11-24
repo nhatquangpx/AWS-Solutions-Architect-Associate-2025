@@ -1,0 +1,91 @@
+        ### Mục tiêu bài học ###
+- Vấn đề của ứng dụng toàn cầu khi chỉ đặt ở một region 
+- Khái niệm Unicast IP và Anycast IP - nền tảng quan trọng của Global Accelerator 
+- Global Accelerator hoạt động như thế nào và vì sao giúp giảm latency 
+- Các lợi ích: hiệu năng ổn định, failover nhanh, bảo mật, health checks 
+- Sự khác biệt rõ ràng giữa AWS Global Accelerator và CloudFront 
+
+1. Bối cảnh vấn đề: Ứng dụng toàn cầu nhưng chỉ đặt ở 1 region 
+- Bạn triển khai 1 ứng dụng ở 1 region duy nhất - ví dụ: India 
+- Nhưng người dùng lại đến từ: Mỹ, Châu Âu, Úc,...
+- Khi người dùng truy cập, request của họ phải đi qua Internet công cộng, qua rất nhiều router hops 
+-> Điều này gây:
+    + Latency cao 
+    + Rủi ro mất kết nối 
+    + Đường đi không tối ưu để vào hạ tầng Amazon 
+- Ví dụ: người dùng ở Mỹ phải đi qua 5 hops trước khi tới ALB ở India 
+- Do đó, mong muốn là: Đi vào mạng nội bộ AWS (AWS global network) càng sớm càng tốt để giảm độ trễ 
+
+2. Giới thiệu 2 khái niệm nền tảng: Unicast IP và Anycast IP 
+- Trước khi hiểu Global Accelerator, phải hiểu 2 mô hình IP này 
+2.1. Unicast IP (truyền thống)
+- 1 server = 1 địa chỉ IP 
+- Client gửi request đến IP nào thì đến đúng server đó 
+2.2. Anycast IP (khác hoàn toàn, tạo sức mạnh cho Global Accelerator)
+- Nhiều server cùng sở hữu 1 địa chỉ IP giống nhau 
+- Client sẽ được định tuyến đến server gần nhất với nó 
+-> Global Accelerator dựa hoàn toàn vào Anycast IP để hoạt động 
+
+3. Global Accelerator hoạt động như thế nào? 
+- Global Accelerator cho phép:
+    + Sử dụng Anycast IP 
+    + Traffic được đưa đến edge location gần nhất 
+    + Từ đó đi vào AWS private global network, tốc độ cao và ổn định 
+    + Rồi đi đến ALB hoặc ứng dụng của bạn trong AWS 
+- Luồng hoạt động:
+    + Người dùng Mỹ:
+        . Request -> đi đến edge location gần Mỹ 
+        . Từ edge -> đi thẳng qua mạng AWS nội bộ đến ALB tại India 
+    + Người dùng Úc: tương tự 
+
+4. Tính chất quan trọng của Anycast IP trong Global Accelerator
+- Global Accelerator tạo cho bạn:
+    + 2 địa chỉ Anycast IP tĩnh 
+    + Có hiệu lực toàn cầu 
+    + Client từ bất cứ đâu cũng chỉ dùng 2 IP này 
+- Khi client kết nối:
+    + Request luôn đi vào edge location gần nhất 
+    + Từ đó đi qua mạng AWS riêng tư đến backend của bạn 
+-> Làm giảm latency và tăng độ ổn định 
+
+5. Global Accelerator hỗ trợ backend nào?
+- Elastic IP 
+- EC2 instance 
+- Application Load Balancer
+- Network Load Balancer
+-> Các backend này có thể là public hoặc private
+
+6. Lợi ích của Global Accelerator
+- Hiệu năng ổn định:
+    + Nhờ đi qua AWS internal global network 
+    + Hệ thống routing thông minh, luôn chọn edge location có độ trễ thấp nhất 
+- Failover nhanh theo vùng (Fast regional failover)
+    + Nếu một vùng có lỗi, GA failover sang vùng khác dưới 1 phút 
+- Không vấn đề về cache client
+    + Client không cache gì 
+    + 2 IP Anycast luôn giữ nguyên 
+- Health checks tích hợp 
+    + GA liên tục kiểm tra tình trạng ứng dụng 
+    + Nếu ALB/region nào fail -> chuyển hướng trực tiếp sang backend khỏe mạnh 
+- Bảo mật tích hợp
+    + Chỉ cần whitelist 2 IP duy nhất
+    + Có DDoS protection từ AWS Shield (tự động)
+
+7. Sự khác nhau giữa Global Accelerator và CloudFront 
+- Cả 2 đều:
+    + Dùng global network của AWS 
+    + Sử dụng edge locations
+    + Được bảo vệ bởi AWS Shield 
+- Khác nhau:
+    + CloudFront:
+        . Tăng tốc nội dung cache được (ảnh, video...)
+        . Và cũng tăng tốc nội dung động (API, trang web động)
+        . Nội dung được phục vụ trực tiếp từ edge locations 
+        . Edge location sẽ thỉnh thoảng lấy nội dung mới từ origin 
+    -> Người dùng nhận dữ liệu từ edge, không cần về backend mỗi lần 
+    + Global Accelerator:
+        . Tăng tốc ứng dụng TCP hoặc UDP, kể cả ứng dụng không phải HTTP 
+        . Không có caching 
+        . Tất cả traffic vẫn đi về ứng dụng backend 
+        . Edge location chỉ đóng vai trò proxy
+        . Phù hợp cho: Gaming, IoT, VoIP, HTTP cần static IP toàn cầu, ứng dụng cần failover nhanh và có thể dự đoán
