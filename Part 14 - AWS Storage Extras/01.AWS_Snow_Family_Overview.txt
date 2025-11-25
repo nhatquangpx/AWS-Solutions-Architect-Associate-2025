@@ -1,0 +1,67 @@
+        ### Mục tiêu bài học ###
+- AWS Snowball là gì và dùng để làm gì 
+- Hai loại thiết bị Snowball Edge và điểm khác biệt giữa chúng 
+- Vì sao dữ liệu lớn (petabytes) không nên upload qua mạng và khi nào cần dùng Snowball 
+- Quy trình di chuyển dữ liệu vào AWS bằng Snowball 
+- Các trường hợp sử dụng Snowball cho edge computing 
+- Tại sao Snowball phù hợp cho các môi trường không có internet hoặc internet yếu 
+
+1. AWS Snowball là gì?
+- AWS Snowball là một thiết bị vật lý rất an toàn và có tính di động cao 
+- Thiết bị này dùng để:
+    + Thu thập dữ liệu
+    + Xử lý dữ liệu tại edge 
+    + Di chuyển dữ liệu vào hoặc ra khỏi AWS 
+- Nói đơn giản, Snowball giống như một "máy chủ lưu động" bạn có thể đặt trong hạ tầng của mình để copy dữ liệu rồi gửi lại cho AWS 
+
+2. Snowball phù hợp khi nào?
+- Nếu bạn cần di chuyển petabytes dữ liệu, Snowball có thể là giải pháp tốt 
+- Vì truyền dữ liệu qua mạng không phải lúc nào cũng nhanh. Ví dụ: 100 TB -> truyền qua 1Gbps -> mất 12 ngày 
+- Nếu bạn gặp 1 trong các vấn đề sau:
+    + Băng thông thấp 
+    + Kết nối mạng hạn chế 
+    + Chi phí mạng cao 
+    + Băng thông phải chia sẻ cho ứng dụng khác 
+    + Kết nối không ổn định 
+    + Hoặc nếu việc truyền dữ liệu mất hơn 1 tuần 
+-> AWS khuyến nghị dùng Snowball 
+
+3. 2 loại Snowball Edge 
+- Edge Storage Optimized:
+    + Dung lượng: 210TB
+    + Thiết kế dành cho lưu trữ 
+- Edge Compute Optimized:
+    + Dung lượng: 28TB
+    + Thiết kế cho compute, không tập trung vào lưu trữ 
+
+4. Quy trình di chuyển dữ liệu bằng Snowball 
+- Khi upload trực tiếp dữ liệu lên S3, bạn có thể bị:
+    + Chiếm hết băng thông 
+    + Thời gian lâu 
+    + Kết nối không ổn định 
+- Vì vậy Snowball giải quyết bằng cách:
+    1. AWS gửi 1 thiết bị Snowball vật lý đến cho bạn 
+    -> Bạn cài đặt nó trong hạ tầng của mình 
+    2. Bạn nạp dữ liệu vào Snowball
+    -> Copy dữ liệu vào như 1 thiết bị lưu trữ 
+    3. Bạn gửi thiết bị trở lại AWS 
+    4. AWS thực hiện quá trình import dữ liệu vào S3 hoặc dịch vụ khác trong AWS 
+
+5. Edge computing 
+- Snowball không chỉ dùng để copy dữ liệu. Nó còn là một thiết bị edge computing khi bạn cần xử lý dữ liệu ngay tại nơi dữ liệu được tạo ra 
+- VD: Xe tải chạy trên đường, Con tàu đang ở giữa biển, Trạm khai khoáng ở khu vực hẻo lánh
+- Những nơi này có thể:
+    + Không có internet hoặc internet yếu
+    + Thiếu tài nguyên compute 
+- Lúc này cài đặt Snowball Edge tại đó để:
+    + Xử lý dữ liệu khi vừa tạo ra
+    + Chạy EC2 instances trên Snowball
+    + Chạy Lambda functions trực tiếp trên thiết bị 
+- Sau khi xử lý xong, dữ liệu có thể:
+    + Trả lại AWS khi có kết nối 
+    + Hoặc gửi về sau khi đã được tiền xử lý
+- Các tác vụ được hỗ trợ:
+    + Machine Learning tại edge 
+    + Media transcoding tại edge 
+    + Tiền xử lý (lọc, gom, chuẩn hóa,...) dữ liệu trước khi gửi về AWS 
+
