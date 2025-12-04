@@ -1,0 +1,124 @@
+        ### Mục tiêu bài học ###
+- Amazon FSx là gì và vai trò của nó 
+- 4 loại file system trong Amazon FSx và đặc điểm chính xác của từng loại 
+- Hiểu cách tích hợp, giao thức hỗ trợ, hiệu năng và các tính năng đặc biệt 
+- Phân biệt Scratch và Persistent file system trong FSx for Lustre 
+- Biết cách lựa chọn đúng file system cho từng usecase trong đề thi AWS SAA 
+
+1. Khái niệm tổng quan về Amazon FSx 
+- Amazon FSx cho phép bạn khởi tạo các hệ thống file system của bên thứ ba (third-party high-performance file systems) trên AWS như một dịch vụ fully managed 
+- Nó giống như cách Amazon RDS cung cấp MySQL/PostgreSQL được quản lý hoàn toàn -> thì Amazon FSx cung cấp các file system nổi tiếng nhưng được quản lý bởi AWS 
+- Hiện tại bạn cần ghi nhớ 4 loại chính:
+    + FSx for Windows File Server 
+    + FSx for Lustre
+    + FSx for NetApp ONTAP
+    + FSx for OpenZFS 
+
+2. FSx for Windows File Server
+- Đây là một Windows File Server share drive đầy đủ quản lý, hỗ trợ:
+- Giao thức và hệ thống file:
+    + SMB protocol 
+    + Windows NTFS 
+- Tích hợp bảo mật:
+    + Tích hợp Microsoft Active Directory
+    + Hỗ trợ ACLs (Access Control List)
+    + Hỗ trợ user quotas
+- Điểm đặc biệt phải nhớ: Dù là Windows File Server, Linux EC2 instances vẫn có thể mount được (Hay xuất hiện trong đề thi)
+- Tương thích hạ tầng on-premises: Có thể sử dụng Microsoft DFS (Distributed File System) để nhóm các file server lại -> giúp nối FSx với Windows File Server tại on-prem
+- Hiệu năng:
+    + Scale lên tens of GB/s
+    + Millions of IOPS
+    + Hundreds of petabytes
+- Tùy chọn storage:
+    + SSD -> latency thấp, phù hợp cho database, video processing, analytics
+    + HDD -> rộng, rẻ hơn -> phù hợp home directories, CMS 
+- Kết nối & HA 
+    + Truy cập từ on-prem qua private connection 
+    + Hỗ trợ Multi-AZ để tăng availability
+    + Dữ liệu được backup hàng ngày vào S3 (DR - disaster recovery)
+
+3. FSx for Lustre
+- Lustre = Linux + Cluster
+-> Là distributed file system cho large-scale computing 
+- Usecase quan trọng:
+    + Machine Learning
+    + High Performance Computing 
+    + Video Processing 
+    + Financial modeling 
+    + Electronic design automation
+- Hiệu năng:
+    + Hundreds of GB/s throughput
+    + Millions of IOPS
+    + Sub-millisecond latency
+- Storage options:
+    + SSD:
+        . latency rất thấp 
+        . workload nhiều IOPS
+        . file nhỏ, random access 
+    + HDD:
+        . throughput-intensive
+        . file lớn, tuần tự 
+    + SSD đắt hơn HDD 
+- Tích hợp với S3 (ĐIỂM QUAN TRỌNG)
+    + Có thể đọc dữ liệu S3 như một file system
+    + Có thể ghi output từ Lustre trở lại S3 
+- Truy cập từ on-prem: Qua VPN hoặc Direct Connect 
+* Scratch vs Persistent File System (FSx For Lustre)
+a. Scratch File System
+- Temporary storage 
+- Không replicated -> Nếu server underlying fail -> mất dữ liệu 
+- Ưu điểm:  
+    + Hiệu năng rất cao -> 6 lần performance của Persistent
+    + VD: throughput 200 MB/s per TB 
+- Usecase:
+    + Short-term processing 
+    + Tối ưu chi phí 
+    + Không cần replication 
+- Kiến trúc:
+    + FSx Lustre nằm trong một AZ 
+    + Chỉ một bản copy dữ liệu 
+b. Persistent File System 
+- Dùng cho long-term storage 
+- Data được replicate trong cùng một AZ 
+- Nếu underlying server fail -> AWS khôi phục dữ liệu trong vài phút 
+- Usecase:
+    + Xử lí dài hạn 
+    + Lưu trữ dữ liệu nhay cảm 
+- Kiến trúc:
+    + FSx trong 1 AZ 
+    + Có 2 bản copy (replicated volumes)
+
+4. FSx for NetApp ONTAP 
+- Đây là managed NetApp ONTAP file system trên AWS 
+- Giao thức hỗ trợ:
+    + NFS 
+    + SMB
+    + iSCSI 
+-> Phù hợp migrate workloads đang chạy trên ONTAP ở on-prem 
+- Broad compatibility:
+    + Hỗ trợ rất nhiều hệ điều hành và dịch vụ: Linux, Windows, macOS, VMware Cloud on AWS, WorkSpaces, AppStream, EC2, ECS, EKS
+- Tính năng nổi bật:
+    + Auto-scaling kích thước storage
+    + Replication
+    + Snapshots 
+    + Compression (giảm chi phí)
+    + De-duplication (loại bỏ file trùng lặp)
+    + Point-in-time instantanuous cloning -> Tạo bản clone nhanh chóng để test môi trường mới 
+
+5. FSx for OpenZFS 
+- Đây là managed OpenZFS file system.
+- Giao thức: NFS (nhiều version)
+- Use case: Di chuyển workload đang chạy trên OpenZFS vào AWS.
+- Compatibility:
+    + Linux
+    + Mac
+    + Windows
+    (và các nền tảng khác)
+- Hiệu năng:
+    + Lên tới 1 million IOPS
+    + Latency < 0.5 ms
+    + Hỗ trợ Snapshots
+    + Hỗ trợ Compression
+    + Không hỗ trợ de-duplication
+- Cũng hỗ trợ: Instantaneous point-in-time cloning
+→ rất hữu ích để test workloads
