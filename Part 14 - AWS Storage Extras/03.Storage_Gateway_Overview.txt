@@ -1,0 +1,110 @@
+        ### Mục tiêu bài học ###
+- Hiểu khái niệm Hybrid Cloud trong AWS 
+- Biết vì sao AWS thúc đẩy mô hình hybrid cloud 
+- Hiểu vai trò của AWS Storage Gateway 
+- Phân biệt rõ 3 loại Storage Gateway: S3 File Gateway, Volume Gateway, Tape Gateway
+- Hiểu được từng usecase cụ thể và cách dữ liệu được lưu trữ trong AWS 
+
+1. Hybrid Cloud là gì?
+- AWS đang ngày càng thúc đẩy mô hình Hybrid Cloud 
+- Hybrid Cloud nghĩa là:
+    + Một phần hạ tầng chạy trên AWS Cloud 
+    + Một phần hạ tầng vẫn chạy on-premises 
+- Điều này xảy ra vì nhiều lý do:
+    + Quá trình migrate lên cloud diễn ra lâu dài 
+    + Yêu cầu security hoặc compliance 
+    + Chiến lược chỉ dùng cloud cho elastic workloads 
+    + Giữ nhiều hệ thống cũ trên on-premises
+
+2. Vấn đề đặt ra với Hybrid Cloud 
+- AWS có những dịch vụ rất tốt, ví dụ Amazon S3 
+    + Amazon S3 là object storage độc quyền
+    + Không giống Amazon EFS (NFS-compliant file system)
+-> Vấn đề: Làm thế nào để truy cập dữ liệu từ on-premises?
+-> Câu trả lời chính là AWS Storage Gateway 
+
+3. Các loại storage trong AWS 
+- AWS có 3 kiểu lưu trữ cloud-native:
+    + Block storage: Amazon EBS, EC2 Instance Store 
+    + File system: Amazon EFS, Amazon FSx 
+    + Object storage: Amazon S3, Amazon Glacier 
+
+4. AWS Storage Gateway là gì?
+- AWS Storage Gateway là cầu nối giữa dữ liệu on-premises và dữ liệu trên AWS Cloud 
+- Dữ liệu vẫn nằm trong on-premises nhưng được kết nối và đồng bộ với AWS thông qua Storage Gateway
+
+5. Các usecases chính của Storage Gateway
+- Disaster recovery -> backup dữ liệu on-premises lên cloud 
+- Backup & restore
+- Cloud migration 
+- Mở rộng storage từ on-premises lên cloud 
+- Dữ liệu:
+    + Cloud lưu cold data 
+    + On-premises lưu warm/frequently used data 
+-> Vì có nhiều usecase khác nhau nên có nhiều loại Storage Gateway
+
+6. Các loại AWS Storage Gateway
+6.1. Amazon S3 File Gateway 
+- Mục tiêu: Expose Amazon S3 bucket cho on-premises application server -> thông qua file system chuẩn 
+- Storage class hỗ trợ:
+    + S3 Standard 
+    + S3 Standard-IA 
+    + S3 One Zone-IA
+    + S3 Intelligent-Tiering 
+    + Không dùng trực tiếp với Glacier
+- Cách hoạt động:
+    + Application server dùng: NFS hoặc SMB 
+    + File Gateway: Dịch request NFS/SMB thành HTTPS request đến Amazon S3 
+- Với application: Trông như đang truy cập file share thông thường nhưng thực chất là object trong S3 
+- Caching:
+    + Chỉ dữ liệu được truy cập gần nhất được cache 
+    + Không cache toàn bộ bucket 
+- Archive:
+    + Có thể dùng S3 Lifecycle Policy 
+    + Chuyển object sang S3 Glacier 
+- Bảo mật và truy cập:
+    + Cần IAM role cho mỗi File Gateway 
+    + SMB:
+        . Tích hợp Active Directory
+        . Xác thực user trước khi truy cập S3 
+
+6.2. Volume Gateway
+- Mục tiêu: Cung cấp block storage cho on-premises server -> thông qua iSCSI, backed by Amazon S3 
+- Backup: 
+    + Volume được backup bằng Amazon EBS Snapshots
+    + Có thể restore volume khi cần 
+- Hai loại Volume Gateway:
+    + Cached Volumes:
+        . Dữ liệu gần nhất nằm on-premises 
+        . Phần còn lại nằm trên S3 
+        . Độ trễ thấp cho dữ liệu mới 
+    + Stored Volumes:
+        . Toàn bộ dữ liệu nằm on-premises 
+        . Backup theo lịch lên Amazon S3 
+- Mục tiêu chính: Backup volume của server on-premises 
+
+6.3. Tape Gateway
+- Usecase: Dành cho doanh nghiệp đang dùng tape backup vật lý 
+- Cách hoạt động:
+    + Tape Gateway cung cấp Virtual Tape Library (VTL)
+    + Giao tiếp bằng iSCSI 
+    + Tape được lưu trên:
+        . Amazon S3
+        . Amazon Glacier 
+- Tương thích: Hoạt động với leading backup software vendors 
+- Kiến trúc: 
+    + Data center có:
+        . Backup server 
+        . Tape-based system 
+    + Tape Gateway:
+        . Đưa tape lên AWS 
+        . Lưu vào S3/Glacier 
+
+7. Triển khai Storgae Gateway 
+- Storage Gateway phải chạy trong coporate data center 
+- Thường là VM 
+- Kết nối:
+    + On-premises 
+    + Storage Gateway service 
+    + AWS Cloud 
+    
